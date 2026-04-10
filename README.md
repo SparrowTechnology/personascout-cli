@@ -25,11 +25,12 @@ Current implementation:
 - `personascout persona list`
 - `personascout persona add --file <path>`
 - `personascout persona validate`
+- `personascout source list`
+- `personascout source add`
+- `personascout fetch` (RSS sources)
 
 Planned next:
 
-- `source`
-- `fetch`
 - `providers`
 - `classify`
 - `report`
