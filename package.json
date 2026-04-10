@@ -1,0 +1,60 @@
+{
+  "name": "personascout",
+  "version": "0.1.0",
+  "description": "Map your content against your ICPs. Find the gaps. Fill them.",
+  "type": "module",
+  "bin": {
+    "personascout": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparrowTechnology/personascout-cli.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "icp",
+    "persona",
+    "content",
+    "marketing",
+    "gap-analysis",
+    "ai"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/SparrowTechnology/personascout-cli/issues"
+  },
+  "homepage": "https://github.com/SparrowTechnology/personascout-cli#readme",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.87.0",
+    "@inquirer/prompts": "^8.4.1",
+    "@mendable/firecrawl-js": "^4.18.1",
+    "axios": "^1.15.0",
+    "chalk": "^5.6.2",
+    "cheerio": "^1.2.0",
+    "cli-table3": "^0.6.5",
+    "commander": "^14.0.3",
+    "csv-parse": "^6.2.1",
+    "openai": "^6.34.0",
+    "ora": "^9.3.0",
+    "rss-parser": "^3.13.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.4"
+  }
+}
