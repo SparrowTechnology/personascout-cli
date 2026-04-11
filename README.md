@@ -51,7 +51,7 @@ Persona and config validation use `zod`.
 
 ## Contributing
 
-The initial build order follows the product brief in `docs/personascout-cli-brief.md`.
+This project is being built in the open. The public README tracks the current feature set and direction; internal planning documents stay outside the repository.
 
 ## Licence
 
