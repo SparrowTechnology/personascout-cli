@@ -14,6 +14,17 @@ export function stripHtml(input: string): string {
   return $.text().replace(/\s+/g, ' ').trim();
 }
 
+export function stripMarkdown(input: string): string {
+  return input
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/[#>*_~-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function normalizeContentItem(input: {
   sourceId: string;
   url: string;

@@ -10,8 +10,10 @@ import { saveSource } from '../src/lib/source.js';
 
 const tempDirs: string[] = [];
 const servers: Server[] = [];
+const originalFirecrawlApiKey = process.env.FIRECRAWL_API_KEY;
 
 afterEach(async () => {
+  process.env.FIRECRAWL_API_KEY = originalFirecrawlApiKey;
   await Promise.all(servers.splice(0).map((server) => new Promise((resolve) => server.close(() => resolve(undefined)))));
   await Promise.all(tempDirs.splice(0).map((target) => rm(target, { recursive: true, force: true })));
 });
@@ -137,6 +139,104 @@ describe('fetchProjectSources', () => {
       added: 1,
     });
   });
+
+  it('fetches website pages with cheerio fallback and respects crawl depth', async () => {
+    delete process.env.FIRECRAWL_API_KEY;
+
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'personascout-fetch-website-'));
+    tempDirs.push(cwd);
+
+    const config = createDefaultConfig({
+      companyName: 'Acme',
+      website: 'https://example.com',
+      providerId: 'anthropic',
+      model: 'claude-haiku-4-5',
+    });
+    config.fetch_depth = 1;
+
+    await initializeProject(config, cwd);
+
+    const server = await startWebsiteServer({
+      '/': `
+        <html>
+          <head><title>Homepage</title></head>
+          <body>
+            <header>Header content</header>
+            <nav>Navigation</nav>
+            <main>
+              <p>Homepage body</p>
+              <a href="/blog/post-1">Post 1</a>
+              <a href="/blog/post-2">Post 2</a>
+              <a href="https://example.org/outside">Outside</a>
+            </main>
+            <footer>Footer content</footer>
+          </body>
+        </html>`,
+      '/blog/post-1': `
+        <html>
+          <head>
+            <title>Post One</title>
+            <meta property="article:published_time" content="2026-04-09T10:00:00.000Z" />
+          </head>
+          <body>
+            <article>
+              <h1>Post One</h1>
+              <p>Deep article content</p>
+              <a href="/blog/post-1/comments">Comments</a>
+            </article>
+          </body>
+        </html>`,
+      '/blog/post-2': `
+        <html>
+          <head><title>Post Two</title></head>
+          <body>
+            <main>
+              <p>Second article content</p>
+            </main>
+          </body>
+        </html>`,
+      '/blog/post-1/comments': `
+        <html>
+          <head><title>Comments</title></head>
+          <body><main><p>Nested page should not be crawled at depth 1.</p></main></body>
+        </html>`,
+    });
+
+    servers.push(server.server);
+
+    await saveSource(
+      {
+        type: 'website',
+        label: 'Marketing Site',
+        url: `${server.baseUrl}/`,
+      },
+      cwd,
+    );
+
+    const results = await fetchProjectSources({ cwd });
+
+    expect(results[0]).toMatchObject({
+      status: 'fetched',
+      fetched: 3,
+      added: 3,
+    });
+
+    const contentDir = path.join(getProjectPaths(cwd).content, 'marketing-site');
+    const files = await readdir(contentDir);
+    expect(files).toHaveLength(3);
+
+    const savedItems = await Promise.all(
+      files.map(async (file) => JSON.parse(await readFile(path.join(contentDir, file), 'utf8')) as {
+        title: string;
+        body_text: string;
+        url: string;
+      }),
+    );
+
+    expect(savedItems.some((item) => item.title === 'Homepage' && item.body_text.includes('Homepage body'))).toBe(true);
+    expect(savedItems.some((item) => item.body_text.includes('Header content'))).toBe(false);
+    expect(savedItems.some((item) => item.url.endsWith('/blog/post-1/comments'))).toBe(false);
+  });
 });
 
 async function startFeedServer(feedXml: string): Promise<{ server: Server; url: string }> {
@@ -157,5 +257,35 @@ async function startFeedServer(feedXml: string): Promise<{ server: Server; url: 
   return {
     server,
     url: `http://127.0.0.1:${address.port}/feed.xml`,
+  };
+}
+
+async function startWebsiteServer(routes: Record<string, string>): Promise<{ server: Server; baseUrl: string }> {
+  const server = createServer((request, response) => {
+    const url = request.url ?? '/';
+    const body = routes[url];
+
+    if (!body) {
+      response.writeHead(404, { 'Content-Type': 'text/html; charset=utf-8' });
+      response.end('<html><body>Not found</body></html>');
+      return;
+    }
+
+    response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    response.end(body);
+  });
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, '127.0.0.1', () => resolve());
+  });
+
+  const address = server.address();
+  if (!address || typeof address === 'string') {
+    throw new Error('Could not determine server address.');
+  }
+
+  return {
+    server,
+    baseUrl: `http://127.0.0.1:${address.port}`,
   };
 }

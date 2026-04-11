@@ -27,7 +27,7 @@ Current implementation:
 - `personascout persona validate`
 - `personascout source list`
 - `personascout source add`
-- `personascout fetch` (RSS sources)
+- `personascout fetch` (RSS + website sources, with cheerio fallback and optional Firecrawl)
 
 Planned next:
 
