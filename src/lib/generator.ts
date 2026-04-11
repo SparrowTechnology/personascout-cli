@@ -1,11 +1,10 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import Anthropic from '@anthropic-ai/sdk';
-import OpenAI from 'openai';
 import { select } from '@inquirer/prompts';
 import { z } from 'zod';
 import { buildCoverageReport, type CoverageGap } from './reporter.js';
 import { readConfig } from './config.js';
+import { completeWithProvider } from './llm.js';
 import { listSources } from './source.js';
 import { listPersonas } from './persona.js';
 import { resolveProvider, resolveReadyProvider } from './providers.js';
@@ -336,7 +335,12 @@ async function generateWithProvider(
   model: string,
   input: { systemPrompt: string; userPrompt: string; format: GenerationFormat },
 ): Promise<GeneratedBrief | string> {
-  const response = await callProvider(provider, model, input.systemPrompt, input.userPrompt);
+  const response = await completeWithProvider(provider, model, {
+    systemPrompt: input.systemPrompt,
+    userPrompt: input.userPrompt,
+    maxTokens: 2048,
+    temperature: input.format === 'draft' ? 0.7 : 0.2,
+  });
 
   if (input.format === 'draft') {
     return response.trim();
@@ -345,80 +349,18 @@ async function generateWithProvider(
   try {
     return parseBrief(response);
   } catch {
-    const retry = await callProvider(
+    const retry = await completeWithProvider(
       provider,
       model,
-      input.systemPrompt,
-      `${input.userPrompt}\n\nIMPORTANT:\nYour previous response was not valid JSON for the brief schema. Return ONLY valid JSON matching the requested brief structure.`,
+      {
+        systemPrompt: input.systemPrompt,
+        userPrompt: `${input.userPrompt}\n\nIMPORTANT:\nYour previous response was not valid JSON for the brief schema. Return ONLY valid JSON matching the requested brief structure.`,
+        maxTokens: 2048,
+        temperature: 0.2,
+      },
     );
     return parseBrief(retry);
   }
-}
-
-async function callProvider(
-  provider: ProviderDefinition,
-  model: string,
-  systemPrompt: string,
-  userPrompt: string,
-): Promise<string> {
-  if (provider.sdk === 'anthropic') {
-    const apiKey = process.env[provider.api_key_env]?.trim();
-    if (!apiKey) {
-      throw new Error(`Missing API key. Set ${provider.api_key_env} before running generation.`);
-    }
-
-    const client = new Anthropic({ apiKey });
-    const message = await client.messages.create({
-      model,
-      max_tokens: 2048,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    });
-
-    return message.content
-      .filter((block) => block.type === 'text')
-      .map((block) => block.text)
-      .join('\n')
-      .trim();
-  }
-
-  const apiKey = provider.requires_key
-    ? process.env[provider.api_key_env]?.trim()
-    : process.env[provider.api_key_env]?.trim() || 'personascout-local';
-
-  if (!apiKey) {
-    throw new Error(`Missing API key. Set ${provider.api_key_env} before running generation.`);
-  }
-
-  const client = new OpenAI({
-    apiKey,
-    baseURL: provider.base_url,
-  });
-  const completion = await client.chat.completions.create({
-    model,
-    temperature: 0.7,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPrompt },
-    ],
-  });
-  const rawContent = completion.choices[0]?.message?.content as unknown;
-  if (!rawContent) {
-    throw new Error('Provider returned an empty response.');
-  }
-
-  if (typeof rawContent === 'string') {
-    return rawContent.trim();
-  }
-
-  if (!Array.isArray(rawContent)) {
-    throw new Error('Provider returned a response format PersonaScout does not support.');
-  }
-
-  return rawContent
-    .map((part: { text?: string }) => part.text ?? '')
-    .join('\n')
-    .trim();
 }
 
 function parseBrief(rawResponse: string): GeneratedBrief {

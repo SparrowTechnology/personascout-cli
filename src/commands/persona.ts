@@ -1,8 +1,11 @@
 import path from 'node:path';
 import chalk from 'chalk';
 import Table from 'cli-table3';
+import { editor, input, confirm, select } from '@inquirer/prompts';
 import type { Command } from 'commander';
-import { importPersonaFromFile, listPersonas, summariseTitles, validatePersonaDirectory } from '../lib/persona.js';
+import { getPersonaPath, importPersonaFromFile, listPersonas, personaSchema, summariseTitles, validatePersonaDirectory, writePersona } from '../lib/persona.js';
+import { pathExists } from '../lib/config.js';
+import { generatePersonaFromDescription, renderPersonaPreview } from '../lib/persona-generator.js';
 
 export function registerPersonaCommand(program: Command): void {
   const persona = program.command('persona').description('Manage buyer personas');
@@ -56,6 +59,81 @@ export function registerPersonaCommand(program: Command): void {
 
       console.log(chalk.green(`✓ Saved persona ${importedPersona.id}`));
       console.log(outputPath);
+    });
+
+  persona
+    .command('generate')
+    .description('Generate a persona with AI')
+    .option('--description <text>', 'describe the persona to target')
+    .option('--provider <id>', 'override the configured provider')
+    .option('--model <name>', 'override the model used for generation')
+    .action(async (options: { description?: string; provider?: string; model?: string }) => {
+      const description = options.description ?? await input({
+        message: 'Describe the persona you want to target:',
+        required: true,
+      });
+
+      console.log('Scraping company website for context...');
+      const { persona: generatedPersona } = await generatePersonaFromDescription(description, {
+        providerId: options.provider,
+        model: options.model,
+      });
+
+      let currentPersona = generatedPersona;
+
+      while (true) {
+        console.log('');
+        console.log(renderPersonaPreview(currentPersona));
+        console.log('');
+
+        const decision = await select({
+          message: 'Save this persona?',
+          choices: [
+            { name: 'Save', value: 'save' as const },
+            { name: 'Edit JSON', value: 'edit' as const },
+            { name: 'Discard', value: 'discard' as const },
+          ],
+        });
+
+        if (decision === 'discard') {
+          console.log('Discarded generated persona.');
+          return;
+        }
+
+        if (decision === 'edit') {
+          const edited = await editor({
+            message: 'Edit the generated persona JSON',
+            default: `${JSON.stringify(currentPersona, null, 2)}\n`,
+            validate: (value) => {
+              try {
+                personaSchema.parse(JSON.parse(value));
+                return true;
+              } catch (error) {
+                return error instanceof Error ? error.message : String(error);
+              }
+            },
+          });
+          currentPersona = personaSchema.parse(JSON.parse(edited));
+          continue;
+        }
+
+        const outputPath = getPersonaPath(currentPersona.id);
+        if (await pathExists(outputPath)) {
+          const shouldOverwrite = await confirm({
+            message: `Persona "${currentPersona.id}" already exists. Overwrite it?`,
+            default: false,
+          });
+
+          if (!shouldOverwrite) {
+            continue;
+          }
+        }
+
+        await writePersona(currentPersona);
+        console.log(chalk.green(`✓ Saved persona ${currentPersona.id}`));
+        console.log(outputPath);
+        return;
+      }
     });
 
   persona
