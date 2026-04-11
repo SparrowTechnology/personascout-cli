@@ -66,20 +66,39 @@ export async function writeRunResult(result: RunResult, cwd = process.cwd()): Pr
 
 export async function getLatestRunResult(cwd = process.cwd()): Promise<RunResult | null> {
   const paths = await assertInitialized(cwd);
-  const files = (await readdir(paths.results))
-    .filter((file) => file.endsWith('.json'))
-    .sort((left, right) => right.localeCompare(left));
+  const files = await listRunResultFiles(cwd);
 
   if (files.length === 0) {
     return null;
   }
 
-  return readRunResult(path.join(paths.results, files[0]));
+  return readRunResult(path.join(paths.results, files[0]!));
 }
 
 export async function readRunResult(filePath: string): Promise<RunResult> {
   const raw = await readFile(filePath, 'utf8');
   return runResultSchema.parse(JSON.parse(raw)) as RunResult;
+}
+
+export async function readSelectedRunResult(resultId: string | undefined, cwd = process.cwd()): Promise<RunResult> {
+  if (!resultId) {
+    const latest = await getLatestRunResult(cwd);
+    if (!latest) {
+      throw new Error("No result files found. Run 'personascout classify' first.");
+    }
+
+    return latest;
+  }
+
+  const filePath = await resolveRunResultPath(resultId, cwd);
+  return readRunResult(filePath);
+}
+
+export async function listRunResultFiles(cwd = process.cwd()): Promise<string[]> {
+  const paths = await assertInitialized(cwd);
+  return (await readdir(paths.results))
+    .filter((file) => file.endsWith('.json'))
+    .sort((left, right) => right.localeCompare(left));
 }
 
 export function createRunId(now = new Date()): string {
@@ -126,4 +145,17 @@ async function listJsonFiles(root: string): Promise<string[]> {
   }
 
   return files;
+}
+
+async function resolveRunResultPath(resultId: string, cwd: string): Promise<string> {
+  const paths = await assertInitialized(cwd);
+  const files = await listRunResultFiles(cwd);
+  const normalized = resultId.endsWith('.json') ? resultId : `${resultId}.json`;
+  const match = files.find((file) => file === normalized || path.parse(file).name === resultId);
+
+  if (!match) {
+    throw new Error(`Result "${resultId}" not found in ${paths.results}.`);
+  }
+
+  return path.join(paths.results, match);
 }

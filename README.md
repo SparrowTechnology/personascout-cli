@@ -35,12 +35,12 @@ The project is in active build-out. What exists today:
 - `personascout fetch` for RSS, website, and CSV sources
 - `personascout providers`
 - `personascout classify`
+- `personascout report`
 - website crawling with same-domain `cheerio` fallback
 - optional Firecrawl-backed website crawling when `FIRECRAWL_API_KEY` is set
 
 What is planned next:
 
-- terminal and exportable reports
 - content gap brief generation
 - result diffing
 
@@ -88,6 +88,12 @@ Run classification:
 
 ```bash
 personascout classify
+```
+
+View the latest coverage report:
+
+```bash
+personascout report
 ```
 
 ## Example Project Layout
@@ -163,6 +169,25 @@ Behavior today:
 - supports Anthropic and OpenAI-compatible providers through the provider registry
 - gives rough token and cost estimates in dry-run mode
 
+### `personascout report`
+
+Loads the latest classification run, computes the coverage matrix, and renders a terminal summary by persona and funnel stage.
+
+Current flags:
+
+- `personascout report`
+- `personascout report --format json`
+- `personascout report --format csv`
+- `personascout report --format markdown`
+- `personascout report --result run-2026-04-11T12-10-00-000Z`
+
+Outputs available today:
+
+- terminal table with stage-by-stage coverage bars
+- JSON including the run payload, personas, computed coverage matrix, and detected gaps
+- CSV with `persona_id,funnel_stage,count,status`
+- Markdown for docs, GitHub, or Notion
+
 ## Provider Direction
 
 The planned provider architecture keeps the model layer deliberately simple:
@@ -223,7 +248,6 @@ If you contribute code, keep in mind the design bias of the project:
 
 Near-term milestones:
 
-- coverage reporting
 - persona generation
 - content brief generation
 - result diffing

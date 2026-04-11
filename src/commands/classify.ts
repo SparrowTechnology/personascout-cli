@@ -76,6 +76,7 @@ export function registerClassifyCommand(program: Command): void {
           console.log(chalk.yellow(`Skipped ${skipped} items after repeated JSON parse failures.`));
         }
         console.log(`${chalk.green('Saved result:')} ${outputPath}`);
+        console.log("Run 'personascout report' to view coverage.");
       },
     );
 }

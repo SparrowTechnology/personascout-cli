@@ -6,6 +6,7 @@ import { registerFetchCommand } from './commands/fetch.js';
 import { registerInitCommand } from './commands/init.js';
 import { registerPersonaCommand } from './commands/persona.js';
 import { registerProvidersCommand } from './commands/providers.js';
+import { registerReportCommand } from './commands/report.js';
 import { registerSourceCommand } from './commands/source.js';
 
 const program = new Command();
@@ -22,6 +23,7 @@ registerSourceCommand(program);
 registerFetchCommand(program);
 registerProvidersCommand(program);
 registerClassifyCommand(program);
+registerReportCommand(program);
 
 void program.parseAsync(process.argv).catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
