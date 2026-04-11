@@ -33,12 +33,12 @@ The project is in active build-out. What exists today:
 - `personascout source list`
 - `personascout source add`
 - `personascout fetch` for RSS and website sources
+- `personascout fetch` for RSS, website, and CSV sources
 - website crawling with same-domain `cheerio` fallback
 - optional Firecrawl-backed website crawling when `FIRECRAWL_API_KEY` is set
 
 What is planned next:
 
-- CSV ingestion
 - provider management
 - AI classification
 - terminal and exportable reports
@@ -119,7 +119,7 @@ Supported source definitions today:
 
 - `rss`
 - `website`
-- `csv` definition only, fetch implementation still pending
+- `csv`
 
 ### `personascout fetch`
 
@@ -130,10 +130,7 @@ Currently implemented:
 - RSS feeds via `rss-parser`
 - website crawling via Firecrawl when configured
 - website crawling via `axios` + `cheerio` fallback when Firecrawl is unavailable
-
-Not implemented yet:
-
-- CSV fetching
+- CSV imports via `csv-parse/sync` with per-source column mappings
 
 ## Provider Direction
 

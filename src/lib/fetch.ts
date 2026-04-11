@@ -1,6 +1,7 @@
 import ora from 'ora';
 import { readConfig } from './config.js';
 import { writeContentItem } from './content.js';
+import { fetchCsvSource } from './fetchers/csv.js';
 import { fetchRssSource } from './fetchers/rss.js';
 import { fetchWebsiteSource } from './fetchers/website.js';
 import { listSources, updateSourceMetadata } from './source.js';
@@ -45,31 +46,22 @@ export async function fetchProjectSources(options: FetchRunOptions = {}): Promis
     const spinner = ora(`Fetching ${source.id}...`).start();
 
     try {
-      if (source.type !== 'rss') {
-        if (source.type !== 'website') {
-          spinner.warn(`Skipped ${source.id} (${source.type} fetch is not implemented yet)`);
-          results.push({
-            source,
-            status: 'skipped',
-            fetched: 0,
-            added: 0,
-            reason: `${source.type} fetch is not implemented yet`,
-          });
-          continue;
-        }
-      }
-
       const items =
         source.type === 'rss'
           ? await fetchRssSource(source, {
               limit,
               since: options.since,
             })
-          : await fetchWebsiteSource(source, {
-              limit,
-              depth: config.fetch_depth,
-              since: options.since,
-            });
+          : source.type === 'website'
+            ? await fetchWebsiteSource(source, {
+                limit,
+                depth: config.fetch_depth,
+                since: options.since,
+              })
+            : await fetchCsvSource(source, {
+                limit,
+                since: options.since,
+              });
 
       let added = 0;
       for (const item of items) {

@@ -1,5 +1,5 @@
 import { createServer, type Server } from 'node:http';
-import { readdir, readFile, rm } from 'node:fs/promises';
+import { readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { mkdtemp } from 'node:fs/promises';
@@ -236,6 +236,116 @@ describe('fetchProjectSources', () => {
     expect(savedItems.some((item) => item.title === 'Homepage' && item.body_text.includes('Homepage body'))).toBe(true);
     expect(savedItems.some((item) => item.body_text.includes('Header content'))).toBe(false);
     expect(savedItems.some((item) => item.url.endsWith('/blog/post-1/comments'))).toBe(false);
+  });
+
+  it('fetches csv rows with configured column mappings', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'personascout-fetch-csv-'));
+    tempDirs.push(cwd);
+
+    await initializeProject(
+      createDefaultConfig({
+        companyName: 'Acme',
+        website: 'https://example.com',
+        providerId: 'anthropic',
+        model: 'claude-haiku-4-5',
+      }),
+      cwd,
+    );
+
+    const csvPath = path.join(cwd, 'content-export.csv');
+    await writeFile(
+      csvPath,
+      [
+        'headline,content,published_at,link',
+        '"CFO guide","<p>Planning content for finance buyers</p>","2026-04-10T10:00:00.000Z","https://example.com/cfo-guide"',
+        '"CTO guide","<p>Deep technical article</p>","2026-04-11T10:00:00.000Z",""',
+      ].join('\n'),
+      'utf8',
+    );
+
+    await saveSource(
+      {
+        type: 'csv',
+        label: 'CSV Export',
+        file: csvPath,
+        csv_mapping: {
+          title: 'headline',
+          body: 'content',
+          date: 'published_at',
+          url: 'link',
+        },
+      },
+      cwd,
+    );
+
+    const results = await fetchProjectSources({ cwd });
+
+    expect(results[0]).toMatchObject({
+      status: 'fetched',
+      fetched: 2,
+      added: 2,
+    });
+
+    const contentDir = path.join(getProjectPaths(cwd).content, 'csv-export');
+    const files = await readdir(contentDir);
+    expect(files).toHaveLength(2);
+
+    const savedItems = await Promise.all(
+      files.map(async (file) => JSON.parse(await readFile(path.join(contentDir, file), 'utf8')) as {
+        title: string;
+        body_text: string;
+        url: string;
+      }),
+    );
+
+    expect(savedItems.some((item) => item.title === 'CFO guide' && item.body_text.includes('Planning content'))).toBe(true);
+    expect(savedItems.some((item) => item.url.startsWith('personascout://csv/csv-export/'))).toBe(true);
+  });
+
+  it('applies the since filter to csv items', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'personascout-fetch-csv-since-'));
+    tempDirs.push(cwd);
+
+    await initializeProject(
+      createDefaultConfig({
+        companyName: 'Acme',
+        website: 'https://example.com',
+        providerId: 'anthropic',
+        model: 'claude-haiku-4-5',
+      }),
+      cwd,
+    );
+
+    const csvPath = path.join(cwd, 'timed-export.csv');
+    await writeFile(
+      csvPath,
+      [
+        'title,body,date,url',
+        '"Old row","Old content","2026-04-01T10:00:00.000Z","https://example.com/old"',
+        '"New row","New content","2026-04-11T10:00:00.000Z","https://example.com/new"',
+      ].join('\n'),
+      'utf8',
+    );
+
+    await saveSource(
+      {
+        type: 'csv',
+        label: 'Timed Export',
+        file: csvPath,
+      },
+      cwd,
+    );
+
+    const results = await fetchProjectSources({
+      cwd,
+      since: '2026-04-05T00:00:00.000Z',
+    });
+
+    expect(results[0]).toMatchObject({
+      status: 'fetched',
+      fetched: 1,
+      added: 1,
+    });
   });
 });
 
