@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import chalk from 'chalk';
 import { Command } from 'commander';
+import { registerClassifyCommand } from './commands/classify.js';
 import { registerFetchCommand } from './commands/fetch.js';
 import { registerInitCommand } from './commands/init.js';
 import { registerPersonaCommand } from './commands/persona.js';
@@ -20,6 +21,7 @@ registerPersonaCommand(program);
 registerSourceCommand(program);
 registerFetchCommand(program);
 registerProvidersCommand(program);
+registerClassifyCommand(program);
 
 void program.parseAsync(process.argv).catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);

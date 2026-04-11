@@ -34,12 +34,12 @@ The project is in active build-out. What exists today:
 - `personascout source add`
 - `personascout fetch` for RSS, website, and CSV sources
 - `personascout providers`
+- `personascout classify`
 - website crawling with same-domain `cheerio` fallback
 - optional Firecrawl-backed website crawling when `FIRECRAWL_API_KEY` is set
 
 What is planned next:
 
-- AI classification
 - terminal and exportable reports
 - content gap brief generation
 - result diffing
@@ -76,6 +76,18 @@ Fetch content into `.personascout/content/`:
 
 ```bash
 personascout fetch
+```
+
+Estimate a classification run:
+
+```bash
+personascout classify --dry-run
+```
+
+Run classification:
+
+```bash
+personascout classify
 ```
 
 ## Example Project Layout
@@ -130,6 +142,26 @@ Currently implemented:
 - website crawling via Firecrawl when configured
 - website crawling via `axios` + `cheerio` fallback when Firecrawl is unavailable
 - CSV imports via `csv-parse/sync` with per-source column mappings
+
+### `personascout classify`
+
+Classifies fetched content against all configured personas and writes a run file under `.personascout/results/`.
+
+Current flags:
+
+- `personascout classify --dry-run`
+- `personascout classify --force`
+- `personascout classify --provider anthropic`
+- `personascout classify --model claude-sonnet-4-5`
+- `personascout classify --source acme-blog`
+- `personascout classify --since 2026-04-01`
+
+Behavior today:
+
+- loads all personas in a single prompt per content item
+- skips items already present in the latest result file unless `--force`
+- supports Anthropic and OpenAI-compatible providers through the provider registry
+- gives rough token and cost estimates in dry-run mode
 
 ## Provider Direction
 
@@ -191,9 +223,6 @@ If you contribute code, keep in mind the design bias of the project:
 
 Near-term milestones:
 
-- CSV source fetching
-- provider registry command
-- classification pipeline
 - coverage reporting
 - persona generation
 - content brief generation
