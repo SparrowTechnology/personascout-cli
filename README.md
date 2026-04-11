@@ -47,12 +47,12 @@ The project is in active build-out. What exists today:
 - `personascout providers`
 - `personascout classify`
 - `personascout report`
+- `personascout generate`
 - website crawling with same-domain `cheerio` fallback
 - optional Firecrawl-backed website crawling when `FIRECRAWL_API_KEY` is set
 
 What is planned next:
 
-- content gap brief generation
 - result diffing
 
 ## Install
@@ -111,6 +111,12 @@ View the latest coverage report:
 
 ```bash
 personascout report
+```
+
+Generate a brief for a gap:
+
+```bash
+personascout generate --all --channel linkedin-article --format brief
 ```
 
 ## Example Project Layout
@@ -205,6 +211,26 @@ Outputs available today:
 - CSV with `persona_id,funnel_stage,count,status`
 - Markdown for docs, GitHub, or Notion
 
+### `personascout generate`
+
+Generates gap-targeted content briefs or drafts using the configured LLM provider.
+
+Current flags:
+
+- `personascout generate`
+- `personascout generate --all`
+- `personascout generate --persona cfo --stage consideration`
+- `personascout generate --channel linkedin-article --format brief`
+- `personascout generate --output ./generated`
+
+Behavior today:
+
+- uses detected weak and critical gaps from the latest coverage report by default
+- supports targeted generation for any `--persona` and `--stage` pair
+- can generate either structured briefs or full markdown drafts
+- uses existing classified content as tone/context examples
+- can print to the terminal or write files to a directory
+
 ## Provider Direction
 
 The planned provider architecture keeps the model layer deliberately simple:
@@ -283,7 +309,6 @@ If you contribute code, keep in mind the design bias of the project:
 Near-term milestones:
 
 - persona generation
-- content brief generation
 - result diffing
 
 Longer-term polish:

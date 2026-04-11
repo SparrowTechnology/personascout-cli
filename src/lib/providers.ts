@@ -75,6 +75,22 @@ export async function getProviderStatus(providerId: string, cwd = process.cwd())
   };
 }
 
+export async function resolveReadyProvider(providerId: string, cwd = process.cwd()): Promise<ProviderDefinition> {
+  const status = await getProviderStatus(providerId, cwd);
+
+  if (status.id === 'ollama' && status.key_status === 'running') {
+    return status;
+  }
+
+  if (!status.requires_key || status.key_status === 'key-set') {
+    return status;
+  }
+
+  throw new Error(
+    `Provider "${providerId}" is not ready.\nRun 'personascout providers --provider ${providerId}' to inspect it, or pass --provider to choose another.`,
+  );
+}
+
 async function getProviderKeyStatus(provider: ProviderDefinition): Promise<ProviderStatus['key_status']> {
   if (provider.id === 'ollama') {
     return (await isOllamaRunning(provider)) ? 'running' : 'not-running';

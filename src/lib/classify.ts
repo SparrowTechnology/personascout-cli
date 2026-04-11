@@ -2,7 +2,7 @@ import { classifyContentItem } from './classifiers/index.js';
 import { estimateClassificationUsage } from './classifiers/shared.js';
 import { readConfig } from './config.js';
 import { listPersonas } from './persona.js';
-import { getProviderStatus, resolveProvider } from './providers.js';
+import { resolveProvider, resolveReadyProvider } from './providers.js';
 import {
   createRunId,
   getAlreadyClassifiedItemIds,
@@ -66,7 +66,7 @@ export async function runClassification(
 ): Promise<{ result: RunResult; outputPath: string; skipped: number }> {
   const cwd = options.cwd ?? process.cwd();
   const plan = await buildClassificationPlan({ ...options, cwd });
-  await assertProviderReady(plan.provider.id, cwd);
+  await resolveReadyProvider(plan.provider.id, cwd);
   const classifyItem = dependencies.classifyItem ?? classifyContentItem;
   const classifiedItems: ClassifiedItem[] = [];
   let skipped = 0;
@@ -97,23 +97,6 @@ export async function runClassification(
   const outputPath = await writeRunResult(result, cwd);
   return { result, outputPath, skipped };
 }
-
-async function assertProviderReady(providerId: string, cwd: string): Promise<ProviderDefinition> {
-  const status = await getProviderStatus(providerId, cwd);
-
-  if (status.id === 'ollama' && status.key_status === 'running') {
-    return status;
-  }
-
-  if (!status.requires_key || status.key_status === 'key-set') {
-    return status;
-  }
-
-  throw new Error(
-    `Provider "${providerId}" is not ready.\nRun 'personascout providers --provider ${providerId}' to inspect it, or pass --provider to choose another.`,
-  );
-}
-
 function selectModel(
   provider: ProviderDefinition,
   configuredProviderId: string,
