@@ -32,14 +32,13 @@ The project is in active build-out. What exists today:
 - `personascout persona validate`
 - `personascout source list`
 - `personascout source add`
-- `personascout fetch` for RSS and website sources
 - `personascout fetch` for RSS, website, and CSV sources
+- `personascout providers`
 - website crawling with same-domain `cheerio` fallback
 - optional Firecrawl-backed website crawling when `FIRECRAWL_API_KEY` is set
 
 What is planned next:
 
-- provider management
 - AI classification
 - terminal and exportable reports
 - content gap brief generation
@@ -140,6 +139,11 @@ The planned provider architecture keeps the model layer deliberately simple:
 - `openai` for OpenAI-compatible APIs including Groq, DeepSeek, Kimi, Mistral, Together, Perplexity, and Ollama
 
 That gives the CLI broad provider support without baking provider-specific logic throughout the codebase.
+
+Provider discovery is now available via:
+
+- `personascout providers`
+- `personascout providers --provider anthropic`
 
 ## Open Core and Licensing
 
