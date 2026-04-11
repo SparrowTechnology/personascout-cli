@@ -2,11 +2,22 @@
 
 Map your content against your ICPs. Find the gaps. Fill them.
 
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![Node.js ≥ 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
+
 `personascout` is a local-first CLI for B2B teams that want to understand how well their content serves their ideal customer profiles across the funnel. It ingests content from RSS feeds, websites, and CSV exports, classifies each piece against your personas, and highlights where your coverage is thin.
 
 The long-term product direction is open core:
 - `personascout` the CLI stays truly open source under `AGPL-3.0-only`
 - a separate hosted product can exist on top, but improvements to the networked software covered by this repo stay in the commons
+
+## The Problem
+
+Most B2B teams create content without a reliable way to check whether it actually covers their ICPs, buyer personas, and buyer funnel stages.
+
+You can have dozens of blog posts, landing pages, or newsletter issues and still end up with most of your content implicitly targeting only one target persona. That leaves hidden content gaps across awareness, consideration, and decision stages.
+
+PersonaScout answers a direct question: **which ICPs is your content actually reaching, and which target personas are being ignored across the buyer funnel?**
 
 ## Why This Exists
 
@@ -46,8 +57,14 @@ What is planned next:
 
 ## Install
 
+The npm package is not published yet. Public npm release is planned once the first brief-complete release is ready.
+
+For now, clone the repo and run it locally:
+
 ```bash
-npm install -g personascout
+npm install
+npm run build
+node dist/index.js --help
 ```
 
 Node.js `18+` is required.
@@ -201,6 +218,23 @@ Provider discovery is now available via:
 
 - `personascout providers`
 - `personascout providers --provider anthropic`
+
+## Supported LLM Providers
+
+| Provider | Notes |
+| --- | --- |
+| Anthropic (Claude) | Recommended. Best classification accuracy. |
+| OpenAI (GPT) | GPT-4o Mini is a cost-effective default. |
+| Groq | Extremely fast. Good fit for low-latency runs. |
+| DeepSeek | Very low cost. Strong for structured output. |
+| Kimi (Moonshot AI) | Useful when you want a Moonshot-compatible option. |
+| Mistral | Good European provider option. |
+| Together AI | Access to many open-weight models. |
+| Perplexity | Available through the OpenAI-compatible provider path. |
+| Ollama | Free, local, and no API key required. |
+| Any OpenAI-compatible API | vLLM, LM Studio, LocalAI, and similar endpoints can be added through config. |
+
+Bring your own API key, or run fully local with Ollama.
 
 ## Open Core and Licensing
 
