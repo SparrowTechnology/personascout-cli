@@ -48,12 +48,13 @@ The project is in active build-out. What exists today:
 - `personascout classify`
 - `personascout report`
 - `personascout generate`
+- `personascout diff`
 - website crawling with same-domain `cheerio` fallback
 - optional Firecrawl-backed website crawling when `FIRECRAWL_API_KEY` is set
 
 What is planned next:
 
-- result diffing
+- starter persona templates
 
 ## Install
 
@@ -117,6 +118,12 @@ Generate a brief for a gap:
 
 ```bash
 personascout generate --all --channel linkedin-article --format brief
+```
+
+Compare the latest run against the previous one:
+
+```bash
+personascout diff
 ```
 
 ## Example Project Layout
@@ -231,6 +238,23 @@ Behavior today:
 - uses existing classified content as tone/context examples
 - can print to the terminal or write files to a directory
 
+### `personascout diff`
+
+Compares two classification runs and shows how persona-stage coverage changed over time.
+
+Current flags:
+
+- `personascout diff`
+- `personascout diff --from run-2026-04-10T09-00-00-000Z --to run-2026-04-11T09-00-00-000Z`
+- `personascout diff --format json`
+- `personascout diff --format markdown`
+
+Behavior today:
+
+- compares the latest run to the previous run by default
+- shows improved, declined, unchanged, new-gap, and gap-closed cells
+- supports terminal, JSON, and Markdown output
+
 ## Provider Direction
 
 The planned provider architecture keeps the model layer deliberately simple:
@@ -308,8 +332,7 @@ If you contribute code, keep in mind the design bias of the project:
 
 Near-term milestones:
 
-- persona generation
-- result diffing
+- persona templates
 
 Longer-term polish:
 
