@@ -5,8 +5,19 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createDefaultConfig, getProjectPaths, initializeProject } from '../src/lib/config.js';
 import { generatePersonaFromDescription, renderPersonaPreview } from '../src/lib/persona-generator.js';
-import { importPersonaFromFile, personaSchema, summariseTitles, validatePersonaDirectory } from '../src/lib/persona.js';
+import { getPersonaTemplate, listPersonaTemplates } from '../src/lib/persona-templates.js';
+import {
+  deletePersonaById,
+  importPersonaFromFile,
+  listPersonaResultReferences,
+  personaSchema,
+  readPersonaById,
+  summariseTitles,
+  validatePersonaDirectory,
+  writePersona,
+} from '../src/lib/persona.js';
 import { scrapeWebsiteContext } from '../src/lib/scraper.js';
+import { writeRunResult } from '../src/lib/results.js';
 
 const tempDirs: string[] = [];
 const servers: Server[] = [];
@@ -147,6 +158,19 @@ describe('persona helpers', () => {
     expect(summariseTitles(['CTO', 'VP Engineering', 'Head of Platform'])).toBe('CTO, VP Engineering (+1)');
   });
 
+  it('lists bundled persona templates', () => {
+    const templates = listPersonaTemplates();
+    expect(templates).toHaveLength(15);
+    expect(templates[0]?.id).toBe('cfo');
+    expect(templates.some((template) => template.id === 'procurement-lead')).toBe(true);
+  });
+
+  it('returns a bundled persona template by id', () => {
+    const template = getPersonaTemplate('cto');
+    expect(template.name).toBe('CTO / VP Engineering');
+    expect(template.titles).toContain('CTO');
+  });
+
   it('scrapes company context from the homepage and linked pages', async () => {
     const server = await startWebsiteServer({
       '/': `
@@ -236,6 +260,108 @@ describe('persona helpers', () => {
     expect(callCount).toBe(2);
     expect(result.persona.id).toBe('cfo');
     expect(renderPersonaPreview(result.persona)).toContain('Generated Persona: CFO');
+  });
+
+  it('can save a bundled template into the project persona directory', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'personascout-persona-template-'));
+    tempDirs.push(cwd);
+
+    await initializeProject(
+      createDefaultConfig({
+        companyName: 'Acme',
+        website: 'https://example.com',
+        providerId: 'anthropic',
+        model: 'claude-haiku-4-5',
+      }),
+      cwd,
+    );
+
+    const template = getPersonaTemplate('product-manager');
+    const outputPath = path.join(getProjectPaths(cwd).personas, `${template.id}.json`);
+    await writeFile(outputPath, `${JSON.stringify(template, null, 2)}\n`, 'utf8');
+
+    const results = await validatePersonaDirectory(cwd);
+    expect(results.find((entry) => entry.file.endsWith('product-manager.json'))?.ok).toBe(true);
+  });
+
+  it('can read and delete personas by id', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'personascout-persona-delete-'));
+    tempDirs.push(cwd);
+
+    await initializeProject(
+      createDefaultConfig({
+        companyName: 'Acme',
+        website: 'https://example.com',
+        providerId: 'anthropic',
+        model: 'claude-haiku-4-5',
+      }),
+      cwd,
+    );
+
+    const template = getPersonaTemplate('it-manager');
+    await writePersona(template, cwd);
+
+    const loaded = await readPersonaById('it-manager', cwd);
+    expect(loaded.name).toBe('IT Manager / Head of IT');
+
+    const deletedPath = await deletePersonaById('it-manager', cwd);
+    expect(deletedPath).toBe(path.join(getProjectPaths(cwd).personas, 'it-manager.json'));
+
+    const results = await validatePersonaDirectory(cwd);
+    expect(results).toHaveLength(0);
+  });
+
+  it('finds classification result references for a persona', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'personascout-persona-refs-'));
+    tempDirs.push(cwd);
+
+    await initializeProject(
+      createDefaultConfig({
+        companyName: 'Acme',
+        website: 'https://example.com',
+        providerId: 'anthropic',
+        model: 'claude-haiku-4-5',
+      }),
+      cwd,
+    );
+
+    const template = getPersonaTemplate('cfo');
+    await writePersona(template, cwd);
+    await writeRunResult(
+      {
+        run_id: 'run-2026-04-12T09-30-00-000Z',
+        created_at: '2026-04-12T09:30:00.000Z',
+        provider: 'anthropic',
+        model: 'claude-haiku-4-5',
+        item_count: 1,
+        persona_ids: ['cfo'],
+        items: [
+          {
+            id: 'item-1',
+            source_id: 'blog',
+            url: 'https://example.com/item-1',
+            title: 'Finance risk post',
+            body_text: 'Example content.',
+            published_at: '2026-04-12T08:00:00.000Z',
+            fetched_at: '2026-04-12T08:05:00.000Z',
+            scores: [
+              {
+                persona_id: 'cfo',
+                relevance: 8,
+                funnel_stage: 'awareness',
+                reasoning: 'Relevant.',
+                confidence: 'high',
+              },
+            ],
+          },
+        ],
+      },
+      cwd,
+    );
+
+    const references = await listPersonaResultReferences('cfo', cwd);
+    expect(references).toHaveLength(1);
+    expect(references[0]?.run_id).toBe('run-2026-04-12T09-30-00-000Z');
   });
 });
 

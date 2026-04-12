@@ -49,12 +49,15 @@ The project is in active build-out. What exists today:
 - `personascout report`
 - `personascout generate`
 - `personascout diff`
+- `personascout persona use <template-id>`
+- `personascout persona edit <id>`
+- `personascout persona delete <id>`
 - website crawling with same-domain `cheerio` fallback
 - optional Firecrawl-backed website crawling when `FIRECRAWL_API_KEY` is set
 
 What is planned next:
 
-- starter persona templates
+- public release polish
 
 ## Install
 
@@ -82,6 +85,12 @@ Add a persona from JSON:
 
 ```bash
 personascout persona add --file ./persona.json
+```
+
+Start from a bundled persona template:
+
+```bash
+personascout persona use cfo
 ```
 
 Add a source:
@@ -150,10 +159,16 @@ Creates the local project structure, writes `config.json`, and updates `.gitigno
 Current subcommands:
 
 - `personascout persona list`
+- `personascout persona list --templates`
 - `personascout persona add --file <path>`
+- `personascout persona use <template-id>`
+- `personascout persona generate`
+- `personascout persona edit <id>`
+- `personascout persona delete <id>`
 - `personascout persona validate`
 
 Personas are stored as JSON files under `.personascout/personas/`.
+Built-in starter templates now cover common B2B buyer personas including `cfo`, `cto`, `vp-sales`, `vp-marketing`, `product-manager`, `ma-analyst`, and `procurement-lead`.
 
 ### `personascout source`
 
@@ -332,7 +347,7 @@ If you contribute code, keep in mind the design bias of the project:
 
 Near-term milestones:
 
-- persona templates
+- public release polish
 
 Longer-term polish:
 

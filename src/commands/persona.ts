@@ -3,9 +3,21 @@ import chalk from 'chalk';
 import Table from 'cli-table3';
 import { editor, input, confirm, select } from '@inquirer/prompts';
 import type { Command } from 'commander';
-import { getPersonaPath, importPersonaFromFile, listPersonas, personaSchema, summariseTitles, validatePersonaDirectory, writePersona } from '../lib/persona.js';
+import {
+  deletePersonaById,
+  getPersonaPath,
+  importPersonaFromFile,
+  listPersonas,
+  listPersonaResultReferences,
+  personaSchema,
+  readPersonaById,
+  summariseTitles,
+  validatePersonaDirectory,
+  writePersona,
+} from '../lib/persona.js';
 import { pathExists } from '../lib/config.js';
 import { generatePersonaFromDescription, renderPersonaPreview } from '../lib/persona-generator.js';
+import { getPersonaTemplate, listPersonaTemplates } from '../lib/persona-templates.js';
 
 export function registerPersonaCommand(program: Command): void {
   const persona = program.command('persona').description('Manage buyer personas');
@@ -13,29 +25,21 @@ export function registerPersonaCommand(program: Command): void {
   persona
     .command('list')
     .description('List personas')
-    .action(async () => {
+    .option('--templates', 'list built-in persona templates')
+    .action(async (options: { templates?: boolean }) => {
+      if (options.templates) {
+        const templates = listPersonaTemplates();
+        renderPersonaTable(templates);
+        return;
+      }
+
       const personas = await listPersonas();
 
       if (personas.length === 0) {
         console.log("No personas defined. Run 'personascout persona generate' to create one.");
         return;
       }
-
-      const table = new Table({
-        head: ['ID', 'NAME', 'TITLES', 'PAIN POINTS'],
-        style: { head: [], border: [] },
-      });
-
-      for (const entry of personas) {
-        table.push([
-          entry.id,
-          entry.name,
-          summariseTitles(entry.titles),
-          `${entry.pain_points.length} defined`,
-        ]);
-      }
-
-      console.log(table.toString());
+      renderPersonaTable(personas);
     });
 
   persona
@@ -137,6 +141,86 @@ export function registerPersonaCommand(program: Command): void {
     });
 
   persona
+    .command('use <templateId>')
+    .description('Copy a built-in persona template into the project')
+    .option('-f, --force', 'overwrite an existing persona')
+    .action(async (templateId: string, options: { force?: boolean }) => {
+      const personaTemplate = getPersonaTemplate(templateId);
+      const outputPath = getPersonaPath(personaTemplate.id);
+
+      if (!options.force && (await pathExists(outputPath))) {
+        const shouldOverwrite = await confirm({
+          message: `Persona "${personaTemplate.id}" already exists. Overwrite it?`,
+          default: false,
+        });
+
+        if (!shouldOverwrite) {
+          console.log('Template import cancelled.');
+          return;
+        }
+      }
+
+      await writePersona(personaTemplate);
+      console.log(chalk.green(`✓ Saved persona template ${personaTemplate.id}`));
+      console.log(outputPath);
+    });
+
+  persona
+    .command('edit <personaId>')
+    .description('Edit a persona JSON file in your editor')
+    .action(async (personaId: string) => {
+      const existingPersona = await readPersonaById(personaId);
+      let draft = `${JSON.stringify(existingPersona, null, 2)}\n`;
+
+      while (true) {
+        const edited = await editor({
+          message: `Edit persona "${personaId}"`,
+          default: draft,
+        });
+
+        try {
+          const parsed = personaSchema.parse(JSON.parse(edited));
+          const outputPath = await writePersona(parsed);
+          console.log(chalk.green(`✓ Saved persona ${parsed.id}`));
+          console.log(outputPath);
+          return;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          console.log(chalk.red(`Invalid persona JSON: ${message}`));
+          draft = edited;
+        }
+      }
+    });
+
+  persona
+    .command('delete <personaId>')
+    .description('Delete a persona')
+    .action(async (personaId: string) => {
+      const references = await listPersonaResultReferences(personaId);
+
+      if (references.length > 0) {
+        console.log(chalk.yellow(`Warning: ${references.length} classification run(s) reference persona "${personaId}".`));
+        for (const reference of references.slice(0, 5)) {
+          console.log(`- ${reference.run_id} (${reference.provider}/${reference.model})`);
+        }
+      }
+
+      const shouldDelete = await confirm({
+        message: `Delete persona "${personaId}"?`,
+        default: false,
+      });
+
+      if (!shouldDelete) {
+        console.log('Delete cancelled.');
+        return;
+      }
+
+      const outputPath = await deletePersonaById(personaId);
+      console.log(chalk.green(`✓ Deleted persona ${personaId}`));
+      console.log(outputPath);
+    });
+
+  persona
     .command('validate')
     .description('Validate persona JSON files')
     .action(async () => {
@@ -164,4 +248,22 @@ export function registerPersonaCommand(program: Command): void {
         process.exitCode = 2;
       }
     });
+}
+
+function renderPersonaTable(personas: Array<{ id: string; name: string; titles: string[]; pain_points: string[] }>): void {
+  const table = new Table({
+    head: ['ID', 'NAME', 'TITLES', 'PAIN POINTS'],
+    style: { head: [], border: [] },
+  });
+
+  for (const entry of personas) {
+    table.push([
+      entry.id,
+      entry.name,
+      summariseTitles(entry.titles),
+      `${entry.pain_points.length} defined`,
+    ]);
+  }
+
+  console.log(table.toString());
 }

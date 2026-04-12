@@ -1,7 +1,8 @@
-import { readdir, readFile, writeFile } from 'node:fs/promises';
+import { readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 import { assertInitialized, getProjectPaths, pathExists } from './config.js';
+import { listRunResultFiles, readRunResult } from './results.js';
 import type { Persona } from '../types/persona.js';
 
 export const personaSchema = z.object({
@@ -24,6 +25,13 @@ export interface PersonaValidationResult {
   error?: string;
 }
 
+export interface PersonaResultReference {
+  run_id: string;
+  created_at: string;
+  provider: string;
+  model: string;
+}
+
 export async function listPersonas(cwd = process.cwd()): Promise<Persona[]> {
   const paths = await assertInitialized(cwd);
   const files = (await readdir(paths.personas))
@@ -36,6 +44,11 @@ export async function listPersonas(cwd = process.cwd()): Promise<Persona[]> {
 export async function readPersona(filePath: string): Promise<Persona> {
   const raw = await readFile(filePath, 'utf8');
   return personaSchema.parse(JSON.parse(raw)) as Persona;
+}
+
+export async function readPersonaById(personaId: string, cwd = process.cwd()): Promise<Persona> {
+  await assertInitialized(cwd);
+  return readPersona(getPersonaPath(personaId, cwd));
 }
 
 export async function importPersonaFromFile(
@@ -62,6 +75,18 @@ export async function writePersona(persona: Persona, cwd = process.cwd()): Promi
   const validatedPersona = personaSchema.parse(persona) as Persona;
   const outputPath = getPersonaPath(validatedPersona.id, cwd);
   await writeFile(outputPath, `${JSON.stringify(validatedPersona, null, 2)}\n`, 'utf8');
+  return outputPath;
+}
+
+export async function deletePersonaById(personaId: string, cwd = process.cwd()): Promise<string> {
+  await assertInitialized(cwd);
+  const outputPath = getPersonaPath(personaId, cwd);
+
+  if (!(await pathExists(outputPath))) {
+    throw new Error(`Persona "${personaId}" does not exist.`);
+  }
+
+  await rm(outputPath);
   return outputPath;
 }
 
@@ -99,4 +124,30 @@ export function summariseTitles(titles: string[]): string {
 export function getPersonaPath(personaId: string, cwd = process.cwd()): string {
   const paths = getProjectPaths(cwd);
   return path.join(paths.personas, `${personaId}.json`);
+}
+
+export async function listPersonaResultReferences(
+  personaId: string,
+  cwd = process.cwd(),
+): Promise<PersonaResultReference[]> {
+  await assertInitialized(cwd);
+  const resultFiles = await listRunResultFiles(cwd);
+  const references: PersonaResultReference[] = [];
+
+  for (const fileName of resultFiles) {
+    const result = await readRunResult(path.join(getProjectPaths(cwd).results, fileName));
+    const isReferenced = result.persona_ids.includes(personaId)
+      || result.items.some((item) => item.scores.some((score) => score.persona_id === personaId));
+
+    if (isReferenced) {
+      references.push({
+        run_id: result.run_id,
+        created_at: result.created_at,
+        provider: result.provider,
+        model: result.model,
+      });
+    }
+  }
+
+  return references;
 }
