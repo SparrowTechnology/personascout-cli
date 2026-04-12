@@ -17,7 +17,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "check": "npm run build && npm test",
+    "pack:check": "npm pack --dry-run",
+    "check": "npm run build && npm test && npm run pack:check",
     "prepublishOnly": "npm run check"
   },
   "repository": {
@@ -54,6 +55,9 @@
     "url": "https://github.com/SparrowTechnology/personascout-cli/issues"
   },
   "homepage": "https://github.com/SparrowTechnology/personascout-cli#readme",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.87.0",
     "@inquirer/prompts": "^8.4.1",

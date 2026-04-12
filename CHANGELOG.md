@@ -2,20 +2,25 @@
 
 ## 0.1.0 - 2026-04-12
 
-First public release candidate.
+First public release candidate. This completes the initial CLI scope and is the baseline for the first npm release.
 
 ### Added
 
 - `init` command for bootstrapping a local PersonaScout project
 - persona management commands:
   - `persona list`
+  - `persona add --interactive`
   - `persona add --file`
   - `persona generate`
   - `persona use <template-id>`
   - `persona edit <id>`
   - `persona delete <id>`
   - `persona validate`
-- source management for RSS, website, and CSV inputs
+- source management for RSS, website, and CSV inputs:
+  - `source list`
+  - `source add`
+  - `source remove <id>`
+  - `source test [sourceId]`
 - content fetching for RSS, website crawling, and CSV imports
 - provider registry command with built-in and configurable providers
 - content classification with Anthropic and OpenAI-compatible providers
@@ -27,4 +32,5 @@ First public release candidate.
 ### Notes
 
 - The npm package is not published yet.
+- `npm pack --dry-run` is clean and the package contents are ready for first publish.
 - This release candidate completes the first major build pass from the original CLI brief before public npm release.

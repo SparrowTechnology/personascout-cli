@@ -35,7 +35,7 @@ Publishing calendars, analytics dashboards, and keyword tools do not answer that
 
 ## Current Status
 
-The project is in active build-out. What exists today:
+`personascout` is now at its first public release-candidate milestone. What exists today:
 
 - `personascout init`
 - `personascout persona list`
@@ -65,7 +65,7 @@ What is planned next:
 
 ## Install
 
-The npm package is not published yet. Public npm release is planned once the first brief-complete release is ready.
+The npm package is not published yet, but `0.1.0` is now release-ready and has been checked with `npm pack --dry-run`.
 
 For now, clone the repo and run it locally:
 
