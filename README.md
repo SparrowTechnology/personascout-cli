@@ -143,7 +143,7 @@ Compare the latest run against the previous one:
 personascout diff
 ```
 
-Starter example assets are available in [examples/README.md](/c:/Users/hello/Documents/GitHub/personascout-cli/examples/README.md).
+Starter example assets are available in [examples/README.md](./examples/README.md).
 
 ## Example Project Layout
 
@@ -362,7 +362,7 @@ Near-term milestones:
 
 ## Release Notes
 
-The first public release candidate is tracked in [CHANGELOG.md](/c:/Users/hello/Documents/GitHub/personascout-cli/CHANGELOG.md).
+The first public release candidate is tracked in [CHANGELOG.md](./CHANGELOG.md).
 
 Longer-term polish:
 
