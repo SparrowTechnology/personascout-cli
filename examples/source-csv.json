@@ -1,0 +1,12 @@
+{
+  "id": "csv-export",
+  "type": "csv",
+  "label": "CSV Export",
+  "file": "./examples/content-export.csv",
+  "csv_mapping": {
+    "title": "headline",
+    "body": "content",
+    "date": "published_at",
+    "url": "link"
+  }
+}

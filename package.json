@@ -11,11 +11,14 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check": "npm run build && npm test",
+    "prepublishOnly": "npm run check"
   },
   "repository": {
     "type": "git",

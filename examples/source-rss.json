@@ -1,0 +1,6 @@
+{
+  "id": "company-blog",
+  "type": "rss",
+  "label": "Company Blog",
+  "url": "https://example.com/feed.xml"
+}

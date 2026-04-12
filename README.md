@@ -57,7 +57,8 @@ The project is in active build-out. What exists today:
 
 What is planned next:
 
-- public release polish
+- first npm release
+- source editing and deletion
 
 ## Install
 
@@ -69,6 +70,13 @@ For now, clone the repo and run it locally:
 npm install
 npm run build
 node dist/index.js --help
+```
+
+If you want a local global-style install while testing:
+
+```bash
+npm link
+personascout --help
 ```
 
 Node.js `18+` is required.
@@ -134,6 +142,8 @@ Compare the latest run against the previous one:
 ```bash
 personascout diff
 ```
+
+Starter example assets are available in [examples/README.md](/c:/Users/hello/Documents/GitHub/personascout-cli/examples/README.md).
 
 ## Example Project Layout
 
@@ -347,7 +357,12 @@ If you contribute code, keep in mind the design bias of the project:
 
 Near-term milestones:
 
-- public release polish
+- first npm release
+- source editing and deletion
+
+## Release Notes
+
+The first public release candidate is tracked in [CHANGELOG.md](/c:/Users/hello/Documents/GitHub/personascout-cli/CHANGELOG.md).
 
 Longer-term polish:
 

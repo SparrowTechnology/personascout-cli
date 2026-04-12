@@ -1,0 +1,29 @@
+{
+  "id": "cfo",
+  "name": "CFO / Chief Financial Officer",
+  "titles": [
+    "CFO",
+    "Chief Financial Officer",
+    "VP Finance"
+  ],
+  "company_size": [
+    "50-200",
+    "200-1000",
+    "1000+"
+  ],
+  "pain_points": [
+    "I struggle to connect technical spend to measurable business outcomes.",
+    "There's no way to see delivery risk before it becomes a board-level issue.",
+    "I need clearer visibility into whether engineering investment is reducing or increasing risk."
+  ],
+  "goals": [
+    "Tie software investment to ROI and cash efficiency.",
+    "Improve confidence in strategic budgeting decisions.",
+    "Give the board a credible view of operational and delivery risk."
+  ],
+  "funnel_stages": {
+    "awareness": "High-level content framing technical risk, delivery delays, and software complexity as financial and operational issues.",
+    "consideration": "Comparative content that shows how different approaches improve visibility, forecasting, and capital allocation.",
+    "decision": "Proof-oriented content with ROI, implementation confidence, stakeholder alignment, and commercial justification."
+  }
+}
