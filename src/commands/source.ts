@@ -3,7 +3,17 @@ import Table from 'cli-table3';
 import chalk from 'chalk';
 import type { Command } from 'commander';
 import { fetchProjectSources } from '../lib/fetch.js';
-import { formatSourceLocation, listSources, saveSource, slugify } from '../lib/source.js';
+import {
+  deleteSourceById,
+  formatSourceLocation,
+  getSourceContentPath,
+  listSources,
+  readSourceById,
+  saveSource,
+  slugify,
+  testSource,
+} from '../lib/source.js';
+import { pathExists } from '../lib/config.js';
 import type { SourceType } from '../types/source.js';
 
 export function registerSourceCommand(program: Command): void {
@@ -140,6 +150,78 @@ export function registerSourceCommand(program: Command): void {
         console.log(`Run 'personascout fetch --source ${savedSource.id}' next.`);
       },
     );
+
+  source
+    .command('remove <sourceId>')
+    .description('Remove a source')
+    .action(async (sourceId: string) => {
+      await readSourceById(sourceId);
+
+      const shouldDelete = await confirm({
+        message: `Delete source "${sourceId}"?`,
+        default: false,
+      });
+
+      if (!shouldDelete) {
+        console.log('Delete cancelled.');
+        return;
+      }
+
+      const contentPath = getSourceContentPath(sourceId);
+      const hasFetchedContent = await pathExists(contentPath);
+      const shouldDeleteContent = hasFetchedContent
+        ? await confirm({
+            message: `Delete fetched content for "${sourceId}" too?`,
+            default: false,
+          })
+        : false;
+
+      const result = await deleteSourceById(sourceId, process.cwd(), {
+        deleteContent: shouldDeleteContent,
+      });
+
+      console.log(chalk.green(`✓ Deleted source ${sourceId}`));
+      console.log(result.sourcePath);
+
+      if (result.contentDeleted) {
+        console.log(chalk.green(`✓ Deleted fetched content for ${sourceId}`));
+        console.log(result.contentPath);
+      }
+    });
+
+  source
+    .command('test [sourceId]')
+    .description('Test source connectivity')
+    .action(async (sourceId?: string) => {
+      const sources = await listSources();
+      const selectedSources = sourceId
+        ? sources.filter((sourceEntry) => sourceEntry.id === sourceId)
+        : sources;
+
+      if (selectedSources.length === 0) {
+        if (sourceId) {
+          throw new Error(`Source "${sourceId}" was not found.`);
+        }
+
+        console.log("No sources defined. Run 'personascout source add' to add one.");
+        return;
+      }
+
+      let hasFailures = false;
+
+      for (const sourceEntry of selectedSources) {
+        const result = await testSource(sourceEntry);
+        const marker = result.ok ? chalk.green('✓') : chalk.red('✗');
+        console.log(`${marker} ${sourceEntry.id} — ${result.detail}`);
+        if (!result.ok) {
+          hasFailures = true;
+        }
+      }
+
+      if (hasFailures) {
+        process.exitCode = 2;
+      }
+    });
 }
 
 async function resolveSourceType(inputType?: string): Promise<SourceType> {

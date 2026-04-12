@@ -4,6 +4,7 @@ import Table from 'cli-table3';
 import { editor, input, confirm, select } from '@inquirer/prompts';
 import type { Command } from 'commander';
 import {
+  createPersonaFromInteractiveInput,
   deletePersonaById,
   getPersonaPath,
   importPersonaFromFile,
@@ -11,6 +12,7 @@ import {
   listPersonaResultReferences,
   personaSchema,
   readPersonaById,
+  splitLineSeparatedValues,
   summariseTitles,
   validatePersonaDirectory,
   writePersona,
@@ -49,19 +51,33 @@ export function registerPersonaCommand(program: Command): void {
     .option('--interactive', 'run the interactive persona wizard')
     .option('-f, --force', 'overwrite an existing persona')
     .action(async (options: { file?: string; interactive?: boolean; force?: boolean }) => {
-      if (options.interactive) {
-        throw new Error('Interactive persona creation is not implemented yet. Use --file for now.');
+      if (options.file) {
+        const { persona: importedPersona, outputPath } = await importPersonaFromFile(options.file, process.cwd(), {
+          force: Boolean(options.force),
+        });
+
+        console.log(chalk.green(`✓ Saved persona ${importedPersona.id}`));
+        console.log(outputPath);
+        return;
       }
 
-      if (!options.file) {
-        throw new Error('Provide --file <path>. Interactive add is not implemented yet.');
+      const persona = await promptForInteractivePersona();
+      const outputPath = getPersonaPath(persona.id);
+
+      if (!options.force && (await pathExists(outputPath))) {
+        const shouldOverwrite = await confirm({
+          message: `Persona "${persona.id}" already exists. Overwrite it?`,
+          default: false,
+        });
+
+        if (!shouldOverwrite) {
+          console.log('Persona add cancelled.');
+          return;
+        }
       }
 
-      const { persona: importedPersona, outputPath } = await importPersonaFromFile(options.file, process.cwd(), {
-        force: Boolean(options.force),
-      });
-
-      console.log(chalk.green(`✓ Saved persona ${importedPersona.id}`));
+      await writePersona(persona);
+      console.log(chalk.green(`✓ Saved persona ${persona.id}`));
       console.log(outputPath);
     });
 
@@ -266,4 +282,74 @@ function renderPersonaTable(personas: Array<{ id: string; name: string; titles: 
   }
 
   console.log(table.toString());
+}
+
+async function promptForInteractivePersona() {
+  const id = await input({
+    message: 'Persona ID',
+    validate: (value) =>
+      /^[a-z0-9-]+$/.test(value.trim()) ? true : 'Persona ID must be kebab-case.',
+  });
+
+  const name = await input({
+    message: 'Display name',
+    validate: requireValue('Display name is required.'),
+  });
+
+  const titles = await input({
+    message: 'Titles (comma-separated)',
+    validate: (value) =>
+      value.split(',').some((entry) => entry.trim().length > 0) ? true : 'Enter at least one title.',
+  });
+
+  const companySize = await input({
+    message: 'Company sizes (comma-separated)',
+    validate: (value) =>
+      value.split(',').some((entry) => entry.trim().length > 0) ? true : 'Enter at least one company size.',
+  });
+
+  const painPoints = await editor({
+    message: 'Pain points (one per line, minimum 3)',
+    validate: validateLineCount(3, 'Enter at least 3 pain points.'),
+  });
+
+  const goals = await editor({
+    message: 'Goals (one per line, minimum 2)',
+    validate: validateLineCount(2, 'Enter at least 2 goals.'),
+  });
+
+  const awareness = await input({
+    message: 'Awareness-stage content',
+    validate: requireValue('Awareness-stage content is required.'),
+  });
+
+  const consideration = await input({
+    message: 'Consideration-stage content',
+    validate: requireValue('Consideration-stage content is required.'),
+  });
+
+  const decision = await input({
+    message: 'Decision-stage content',
+    validate: requireValue('Decision-stage content is required.'),
+  });
+
+  return createPersonaFromInteractiveInput({
+    id,
+    name,
+    titles,
+    company_size: companySize,
+    pain_points: painPoints,
+    goals,
+    awareness,
+    consideration,
+    decision,
+  });
+}
+
+function requireValue(message: string): (value: string) => true | string {
+  return (value: string) => (value.trim().length > 0 ? true : message);
+}
+
+function validateLineCount(minimum: number, message: string): (value: string) => true | string {
+  return (value: string) => (splitLineSeparatedValues(value).length >= minimum ? true : message);
 }

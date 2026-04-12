@@ -1,5 +1,7 @@
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import axios, { type AxiosInstance } from 'axios';
+import Parser from 'rss-parser';
 import { z } from 'zod';
 import { assertInitialized, getProjectPaths, pathExists } from './config.js';
 import type { Source, SourceType } from '../types/source.js';
@@ -56,6 +58,25 @@ export interface CreateSourceInput {
   id?: string;
 }
 
+export interface DeleteSourceResult {
+  source: Source;
+  sourcePath: string;
+  contentPath: string;
+  contentDeleted: boolean;
+}
+
+export interface SourceTestResult {
+  source: Source;
+  ok: boolean;
+  detail: string;
+}
+
+export interface TestSourceOptions {
+  parser?: Pick<Parser, 'parseURL'>;
+  httpClient?: Pick<AxiosInstance, 'get'>;
+  fileExists?: (targetPath: string) => Promise<boolean>;
+}
+
 export async function listSources(cwd = process.cwd()): Promise<Source[]> {
   const paths = await assertInitialized(cwd);
   const files = (await readdir(paths.sources))
@@ -68,6 +89,11 @@ export async function listSources(cwd = process.cwd()): Promise<Source[]> {
 export async function readSource(filePath: string): Promise<Source> {
   const raw = await readFile(filePath, 'utf8');
   return sourceSchema.parse(JSON.parse(raw)) as Source;
+}
+
+export async function readSourceById(sourceId: string, cwd = process.cwd()): Promise<Source> {
+  await assertInitialized(cwd);
+  return readSource(getSourcePath(sourceId, cwd));
 }
 
 export async function writeSource(source: Source, cwd = process.cwd()): Promise<string> {
@@ -137,8 +163,59 @@ export async function updateSourceMetadata(
   return updated;
 }
 
+export async function deleteSourceById(
+  sourceId: string,
+  cwd = process.cwd(),
+  options: { deleteContent?: boolean } = {},
+): Promise<DeleteSourceResult> {
+  await assertInitialized(cwd);
+
+  const source = await readSourceById(sourceId, cwd);
+  const sourcePath = getSourcePath(sourceId, cwd);
+  const contentPath = getSourceContentPath(sourceId, cwd);
+
+  await rm(sourcePath);
+
+  let contentDeleted = false;
+  if (options.deleteContent && (await pathExists(contentPath))) {
+    await rm(contentPath, { recursive: true, force: true });
+    contentDeleted = true;
+  }
+
+  return {
+    source,
+    sourcePath,
+    contentPath,
+    contentDeleted,
+  };
+}
+
+export async function testSource(source: Source, options: TestSourceOptions = {}): Promise<SourceTestResult> {
+  try {
+    if (source.type === 'rss') {
+      return testRssSource(source, options);
+    }
+
+    if (source.type === 'website') {
+      return testWebsiteSource(source, options);
+    }
+
+    return testCsvSource(source, options);
+  } catch (error) {
+    return {
+      source,
+      ok: false,
+      detail: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 export function getSourcePath(sourceId: string, cwd = process.cwd()): string {
   return path.join(getProjectPaths(cwd).sources, `${sourceId}.json`);
+}
+
+export function getSourceContentPath(sourceId: string, cwd = process.cwd()): string {
+  return path.join(getProjectPaths(cwd).content, sourceId);
 }
 
 export function slugify(value: string): string {
@@ -152,4 +229,66 @@ export function slugify(value: string): string {
 
 export function formatSourceLocation(source: Source): string {
   return source.type === 'csv' ? source.file ?? '' : source.url ?? '';
+}
+
+async function testRssSource(source: Source, options: TestSourceOptions): Promise<SourceTestResult> {
+  if (!source.url) {
+    throw new Error(`Source "${source.id}" is missing a URL.`);
+  }
+
+  const parser = options.parser ?? new Parser();
+  const feed = await parser.parseURL(source.url);
+  const itemCount = Array.isArray(feed.items) ? feed.items.length : 0;
+
+  return {
+    source,
+    ok: true,
+    detail: `reachable (${itemCount} items available)`,
+  };
+}
+
+async function testWebsiteSource(source: Source, options: TestSourceOptions): Promise<SourceTestResult> {
+  if (!source.url) {
+    throw new Error(`Source "${source.id}" is missing a URL.`);
+  }
+
+  const httpClient = options.httpClient ?? axios.create({
+    timeout: 15000,
+    maxRedirects: 5,
+    headers: {
+      'User-Agent': 'personascout/0.1.0',
+    },
+    validateStatus: (status) => status >= 200 && status < 400,
+  });
+
+  await httpClient.get(source.url, {
+    responseType: 'text',
+  });
+
+  return {
+    source,
+    ok: true,
+    detail: 'reachable',
+  };
+}
+
+async function testCsvSource(source: Source, options: TestSourceOptions): Promise<SourceTestResult> {
+  if (!source.file) {
+    throw new Error(`Source "${source.id}" is missing a file path.`);
+  }
+
+  const exists = await (options.fileExists ?? pathExists)(source.file);
+  if (!exists) {
+    return {
+      source,
+      ok: false,
+      detail: `file not found: ${source.file}`,
+    };
+  }
+
+  return {
+    source,
+    ok: true,
+    detail: `file found: ${source.file}`,
+  };
 }

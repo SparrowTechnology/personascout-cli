@@ -39,10 +39,13 @@ The project is in active build-out. What exists today:
 
 - `personascout init`
 - `personascout persona list`
+- `personascout persona add --interactive`
 - `personascout persona add --file <path>`
 - `personascout persona validate`
 - `personascout source list`
 - `personascout source add`
+- `personascout source remove <id>`
+- `personascout source test`
 - `personascout fetch` for RSS, website, and CSV sources
 - `personascout providers`
 - `personascout classify`
@@ -58,7 +61,7 @@ The project is in active build-out. What exists today:
 What is planned next:
 
 - first npm release
-- source editing and deletion
+- source editing
 
 ## Install
 
@@ -170,6 +173,7 @@ Current subcommands:
 
 - `personascout persona list`
 - `personascout persona list --templates`
+- `personascout persona add --interactive`
 - `personascout persona add --file <path>`
 - `personascout persona use <template-id>`
 - `personascout persona generate`
@@ -186,6 +190,8 @@ Current subcommands:
 
 - `personascout source list`
 - `personascout source add`
+- `personascout source remove <id>`
+- `personascout source test`
 
 Supported source definitions today:
 
@@ -358,7 +364,7 @@ If you contribute code, keep in mind the design bias of the project:
 Near-term milestones:
 
 - first npm release
-- source editing and deletion
+- source editing
 
 ## Release Notes
 

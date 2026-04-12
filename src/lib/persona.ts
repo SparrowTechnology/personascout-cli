@@ -32,6 +32,18 @@ export interface PersonaResultReference {
   model: string;
 }
 
+export interface InteractivePersonaInput {
+  id: string;
+  name: string;
+  titles: string;
+  company_size: string;
+  pain_points: string;
+  goals: string;
+  awareness: string;
+  consideration: string;
+  decision: string;
+}
+
 export async function listPersonas(cwd = process.cwd()): Promise<Persona[]> {
   const paths = await assertInitialized(cwd);
   const files = (await readdir(paths.personas))
@@ -88,6 +100,36 @@ export async function deletePersonaById(personaId: string, cwd = process.cwd()):
 
   await rm(outputPath);
   return outputPath;
+}
+
+export function createPersonaFromInteractiveInput(input: InteractivePersonaInput): Persona {
+  return personaSchema.parse({
+    id: input.id.trim(),
+    name: input.name.trim(),
+    titles: splitCommaSeparatedValues(input.titles),
+    company_size: splitCommaSeparatedValues(input.company_size),
+    pain_points: splitLineSeparatedValues(input.pain_points),
+    goals: splitLineSeparatedValues(input.goals),
+    funnel_stages: {
+      awareness: input.awareness.trim(),
+      consideration: input.consideration.trim(),
+      decision: input.decision.trim(),
+    },
+  }) as Persona;
+}
+
+export function splitCommaSeparatedValues(value: string): string[] {
+  return value
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
+export function splitLineSeparatedValues(value: string): string[] {
+  return value
+    .split(/\r?\n/)
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
 }
 
 export async function validatePersonaDirectory(cwd = process.cwd()): Promise<PersonaValidationResult[]> {

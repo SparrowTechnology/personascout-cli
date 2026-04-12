@@ -7,11 +7,14 @@ import { createDefaultConfig, getProjectPaths, initializeProject } from '../src/
 import { generatePersonaFromDescription, renderPersonaPreview } from '../src/lib/persona-generator.js';
 import { getPersonaTemplate, listPersonaTemplates } from '../src/lib/persona-templates.js';
 import {
+  createPersonaFromInteractiveInput,
   deletePersonaById,
   importPersonaFromFile,
   listPersonaResultReferences,
   personaSchema,
   readPersonaById,
+  splitCommaSeparatedValues,
+  splitLineSeparatedValues,
   summariseTitles,
   validatePersonaDirectory,
   writePersona,
@@ -156,6 +159,52 @@ describe('persona helpers', () => {
 
   it('summarizes long title lists for terminal output', () => {
     expect(summariseTitles(['CTO', 'VP Engineering', 'Head of Platform'])).toBe('CTO, VP Engineering (+1)');
+  });
+
+  it('builds a persona from interactive input strings', () => {
+    const persona = createPersonaFromInteractiveInput({
+      id: 'revops-lead',
+      name: 'Revenue Operations Lead',
+      titles: 'Revenue Operations Lead, RevOps Director',
+      company_size: '50-200, 200-1000',
+      pain_points: [
+        'We struggle to align funnel reporting across teams.',
+        'Content handoff into sales is inconsistent.',
+        'I cannot see coverage gaps by buyer type.',
+      ].join('\n'),
+      goals: [
+        'Improve visibility into persona coverage.',
+        'Give marketing and sales a shared planning view.',
+      ].join('\n'),
+      awareness: 'Operational content about persona coverage and planning gaps.',
+      consideration: 'Comparison content about audit workflows and reporting systems.',
+      decision: 'Proof content focused on adoption, reporting clarity, and stakeholder buy-in.',
+    });
+
+    expect(persona).toMatchObject({
+      id: 'revops-lead',
+      titles: ['Revenue Operations Lead', 'RevOps Director'],
+      company_size: ['50-200', '200-1000'],
+      pain_points: [
+        'We struggle to align funnel reporting across teams.',
+        'Content handoff into sales is inconsistent.',
+        'I cannot see coverage gaps by buyer type.',
+      ],
+      goals: [
+        'Improve visibility into persona coverage.',
+        'Give marketing and sales a shared planning view.',
+      ],
+    });
+  });
+
+  it('splits comma-separated and line-separated values cleanly', () => {
+    expect(splitCommaSeparatedValues(' CFO, VP Finance , , Controller ')).toEqual([
+      'CFO',
+      'VP Finance',
+      'Controller',
+    ]);
+
+    expect(splitLineSeparatedValues('One\n\n Two \r\nThree  ')).toEqual(['One', 'Two', 'Three']);
   });
 
   it('lists bundled persona templates', () => {
