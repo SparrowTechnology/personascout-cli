@@ -1,6 +1,6 @@
-import chalk from 'chalk';
 import { buildCoverageReport, type CoverageReport } from './reporter.js';
 import { listRunResultFiles } from './results.js';
+import { createTerminalUi, pickChartColor } from './ui.js';
 
 export interface CoverageDiffChange {
   persona_id: string;
@@ -102,24 +102,42 @@ export async function buildCoverageDiffReport(
 }
 
 export function renderTerminalDiffReport(report: CoverageDiffReport): string {
+  const ui = createTerminalUi();
   const lines = [
-    'Coverage Change Report',
-    `From: ${formatRunDate(report.from.run.created_at)}  →  To: ${formatRunDate(report.to.run.created_at)}`,
+    ui.section('Coverage Change Report'),
+    `${ui.muted('From')} ${formatRunDate(report.from.run.created_at)}  →  ${ui.muted('To')} ${formatRunDate(report.to.run.created_at)}`,
     '',
-    'CHANGES',
+    ui.section('SUMMARY'),
+    ui.caption('Shows whether coverage improved, declined, or introduced new gaps between the two selected runs.'),
+    '',
+    ui.renderChart(
+      [
+        { label: 'Improved', value: report.summary.improved, color: pickChartColor(0) },
+        { label: 'Declined', value: report.summary.declined, color: pickChartColor(5) },
+        { label: 'New gaps', value: report.summary.new_gaps, color: pickChartColor(3) },
+        { label: 'Gaps closed', value: report.summary.gaps_closed, color: pickChartColor(1) },
+        { label: 'Unchanged', value: report.summary.unchanged, color: pickChartColor(2) },
+      ],
+      {
+        percentage: false,
+        valueLabels: true,
+      },
+    ),
+    '',
+    ui.section('CHANGES'),
+    ui.caption('Shows the per-persona, per-stage coverage movement so you can see exactly where coverage improved or deteriorated.'),
   ];
 
   for (const change of sortChanges(report.changes)) {
-    lines.push(`  ${formatTerminalChange(change)}`);
+    lines.push(`  ${formatTerminalChange(change, ui)}`);
   }
 
   lines.push('');
-  lines.push('SUMMARY');
-  lines.push(`  Gaps closed: ${report.summary.gaps_closed}`);
-  lines.push(`  New gaps: ${report.summary.new_gaps}`);
-  lines.push(`  Improved: ${report.summary.improved}`);
-  lines.push(`  Declined: ${report.summary.declined}`);
-  lines.push(`  Unchanged: ${report.summary.unchanged}`);
+  lines.push(ui.muted(`Gaps closed: ${report.summary.gaps_closed}`));
+  lines.push(ui.muted(`New gaps: ${report.summary.new_gaps}`));
+  lines.push(ui.muted(`Improved: ${report.summary.improved}`));
+  lines.push(ui.muted(`Declined: ${report.summary.declined}`));
+  lines.push(ui.muted(`Unchanged: ${report.summary.unchanged}`));
 
   return lines.join('\n');
 }
@@ -234,24 +252,24 @@ function getChangeRank(change: CoverageDiffChange): number {
   return 3;
 }
 
-function formatTerminalChange(change: CoverageDiffChange): string {
+function formatTerminalChange(change: CoverageDiffChange, ui: ReturnType<typeof createTerminalUi>): string {
   if (change.is_new_gap) {
-    return chalk.yellow(`NEW  ${change.persona_name} — ${change.funnel_stage}: ${change.to_count} (new gap detected)`);
+    return ui.warning(`NEW  ${change.persona_name} — ${change.funnel_stage}: ${change.to_count} (new gap detected)`);
   }
 
   if (change.is_gap_closed) {
-    return chalk.green(`CLOSED  ${change.persona_name} — ${change.funnel_stage}: ${change.from_count} → ${change.to_count}`);
+    return ui.success(`CLOSED  ${change.persona_name} — ${change.funnel_stage}: ${change.from_count} → ${change.to_count}`);
   }
 
   if (change.delta > 0) {
-    return chalk.green(`↑  ${change.persona_name} — ${change.funnel_stage}: ${change.from_count} → ${change.to_count} (+${change.delta})`);
+    return ui.success(`↑  ${change.persona_name} — ${change.funnel_stage}: ${change.from_count} → ${change.to_count} (+${change.delta})`);
   }
 
   if (change.delta < 0) {
-    return chalk.red(`↓  ${change.persona_name} — ${change.funnel_stage}: ${change.from_count} → ${change.to_count} (${change.delta})`);
+    return ui.danger(`↓  ${change.persona_name} — ${change.funnel_stage}: ${change.from_count} → ${change.to_count} (${change.delta})`);
   }
 
-  return `→  ${change.persona_name} — ${change.funnel_stage}: ${change.from_count} → ${change.to_count} (no change)`;
+  return `${ui.muted('→')}  ${change.persona_name} — ${change.funnel_stage}: ${change.from_count} → ${change.to_count} (no change)`;
 }
 
 function formatMarkdownNotes(change: CoverageDiffChange): string {

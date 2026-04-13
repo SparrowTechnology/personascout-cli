@@ -1,8 +1,7 @@
-import chalk from 'chalk';
-import Table from 'cli-table3';
 import { readConfig } from './config.js';
 import { listPersonas } from './persona.js';
 import { readSelectedRunResult } from './results.js';
+import { createTerminalUi, pickChartColor } from './ui.js';
 import type { Config, CoverageCell, CoverageMatrix, Persona, RunResult } from '../types/index.js';
 
 const FUNNEL_STAGES = ['awareness', 'consideration', 'decision'] as const;
@@ -107,41 +106,64 @@ export function computeCoverageMatrix(run: RunResult, personas: Persona[], confi
 }
 
 export function renderTerminalReport(report: CoverageReport): string {
+  const ui = createTerminalUi();
   const personaRows = buildPersonaRows(report.coverage_matrix, report.personas);
+  const stageSummary = buildStageSummary(report.coverage_matrix);
   const maxCount = Math.max(0, ...report.coverage_matrix.map((cell) => cell.count));
-  const table = new Table({
-    head: ['Persona', 'Awareness', 'Consideration', 'Decision', 'Total'],
-    style: { head: ['cyan'], border: ['gray'] },
-    wordWrap: false,
-  });
-
-  for (const row of personaRows) {
-    table.push([
-      row.persona_name,
-      formatCoverageCell(row.awareness, maxCount),
-      formatCoverageCell(row.consideration, maxCount),
-      formatCoverageCell(row.decision, maxCount),
-      String(row.total),
-    ]);
-  }
 
   const lines = [
-    'PersonaScout',
-    `Analysed: ${report.run.item_count} items  |  Run: ${formatRunDate(report.run.created_at)}  |  Provider: ${report.run.provider}/${report.run.model}`,
+    ui.section('PersonaScout'),
+    `${ui.muted('Analysed')} ${report.run.item_count} items  |  ${ui.muted('Run')} ${formatRunDate(report.run.created_at)}  |  ${ui.muted('Provider')} ${report.run.provider}/${report.run.model}`,
     '',
-    'ICP COVERAGE',
-    table.toString(),
+    ui.section('ICP COVERAGE'),
+    ui.caption('Shows the total number of classified content pieces mapped to each persona across all funnel stages.'),
+    '',
+    ui.renderChart(
+      personaRows.map((row, index) => ({
+        label: row.persona_name,
+        value: row.total,
+        color: pickChartColor(index),
+      })),
+      {
+        percentage: true,
+        valueLabels: true,
+      },
+    ),
+    '',
+    ui.section('FUNNEL BALANCE'),
+    ui.caption('Shows how your classified content is distributed between awareness, consideration, and decision stage coverage.'),
+    '',
+    ui.renderChart(
+      stageSummary.map((stage, index) => ({
+        label: titleCase(stage.funnel_stage),
+        value: stage.count,
+        color: pickChartColor(index),
+      })),
+      {
+        percentage: true,
+        valueLabels: true,
+      },
+    ),
+    '',
+    ui.section('COVERAGE DETAIL'),
+    ui.caption('Shows the per-persona count and coverage status for each funnel stage so you can see where gaps are concentrated.'),
+    '',
+    ...personaRows.flatMap((row) => formatPersonaCoverageRow(row, maxCount, ui)),
     '',
   ];
 
   if (report.gaps.length === 0) {
-    lines.push(chalk.green('No coverage gaps detected.'));
+    lines.push(ui.success('No coverage gaps detected.'));
   } else {
-    lines.push('GAPS DETECTED');
+    lines.push(ui.section('GAPS DETECTED'));
     for (const gap of report.gaps) {
-      lines.push(`  ${formatGapLine(gap)}`);
+      lines.push(`  ${formatGapLine(gap, ui)}`);
     }
   }
+
+  lines.push('');
+  lines.push(ui.caption(buildNextStepHint(report)));
+  lines.push('');
 
   return lines.join('\n');
 }
@@ -245,25 +267,16 @@ function classifyCoverageStatus(count: number, config: Config): CoverageCell['st
   return 'adequate';
 }
 
-function formatCoverageCell(cell: CoverageCell, maxCount: number): string {
+function formatCoverageCell(cell: CoverageCell, maxCount: number, ui: ReturnType<typeof createTerminalUi>): string {
   const bar = buildBar(cell.count, maxCount);
-  const label = bar.length > 0 ? `${bar} (${cell.count})` : `(${cell.count})`;
-
-  if (cell.status === 'adequate') {
-    return chalk.green(label);
-  }
-
-  if (cell.status === 'weak') {
-    return chalk.yellow(label);
-  }
-
-  return chalk.red(label);
+  const label = bar.length > 0 ? `${bar} ${cell.count}` : `${cell.count}`;
+  return ui.status(label, cell.status);
 }
 
-function formatGapLine(gap: CoverageGap): string {
-  const icon = gap.status === 'critical' ? chalk.red('!') : chalk.yellow('!');
+function formatGapLine(gap: CoverageGap, ui: ReturnType<typeof createTerminalUi>): string {
+  const icon = gap.status === 'critical' ? ui.danger('!') : ui.warning('!');
   const thresholdLabel = gap.status === 'weak' ? `, threshold: ${gap.threshold}` : '';
-  const statusLabel = gap.status === 'critical' ? chalk.red(gap.status.toUpperCase()) : chalk.yellow(gap.status.toUpperCase());
+  const statusLabel = ui.status(gap.status.toUpperCase(), gap.status);
   return `${icon} ${gap.persona_name} — ${gap.funnel_stage}: ${gap.count} piece${gap.count === 1 ? '' : 's'} (${statusLabel}${thresholdLabel})`;
 }
 
@@ -272,8 +285,20 @@ function buildBar(count: number, maxCount: number): string {
     return '';
   }
 
-  const width = Math.max(1, Math.round((count / maxCount) * 10));
+  const width = Math.max(1, Math.round((count / maxCount) * 8));
   return '█'.repeat(width);
+}
+
+function buildStageSummary(coverageMatrix: CoverageMatrix): Array<{
+  funnel_stage: CoverageCell['funnel_stage'];
+  count: number;
+}> {
+  return FUNNEL_STAGES.map((stage) => ({
+    funnel_stage: stage,
+    count: coverageMatrix
+      .filter((cell) => cell.funnel_stage === stage)
+      .reduce((sum, cell) => sum + cell.count, 0),
+  }));
 }
 
 function formatRunDate(value: string): string {
@@ -287,6 +312,21 @@ function formatRunDate(value: string): string {
 
 function formatMarkdownCell(cell: CoverageCell): string {
   return `${cell.count} (${cell.status})`;
+}
+
+function formatPersonaCoverageRow(
+  row: ReturnType<typeof buildPersonaRows>[number],
+  maxCount: number,
+  ui: ReturnType<typeof createTerminalUi>,
+): string[] {
+  return [
+    row.persona_name,
+    `  Awareness      ${formatCoverageCell(row.awareness, maxCount, ui)}  ${ui.status(row.awareness.status, row.awareness.status)}`,
+    `  Consideration  ${formatCoverageCell(row.consideration, maxCount, ui)}  ${ui.status(row.consideration.status, row.consideration.status)}`,
+    `  Decision       ${formatCoverageCell(row.decision, maxCount, ui)}  ${ui.status(row.decision.status, row.decision.status)}`,
+    `  Total          ${ui.accent(String(row.total))}`,
+    '',
+  ];
 }
 
 function getOrderedPersonaIds(run: RunResult, personas: Persona[]): string[] {
@@ -312,4 +352,16 @@ function emptyCoverageCell(personaId: string, stage: CoverageCell['funnel_stage'
 
 function escapeMarkdown(value: string): string {
   return value.replace(/\|/g, '\\|');
+}
+
+function titleCase(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function buildNextStepHint(report: CoverageReport): string {
+  if (report.gaps.length === 0) {
+    return "Next: Run 'personascout diff' to compare against the previous run, or 'personascout fetch' when new content is ready.";
+  }
+
+  return "Next: Run 'personascout generate --all --format brief' to turn the current gaps into content ideas and briefs.";
 }

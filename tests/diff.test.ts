@@ -31,6 +31,7 @@ describe('buildCoverageDiffReport', () => {
 
     const terminal = renderTerminalDiffReport(report);
     expect(terminal).toContain('Coverage Change Report');
+    expect(terminal).toContain('SUMMARY');
     expect(terminal).toContain('NEW');
     expect(terminal).toContain('CLOSED');
 

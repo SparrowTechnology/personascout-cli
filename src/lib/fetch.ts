@@ -6,6 +6,7 @@ import { fetchRssSource } from './fetchers/rss.js';
 import { fetchWebsiteSource } from './fetchers/website.js';
 import { loadContentItems } from './results.js';
 import { listSources, updateSourceMetadata } from './source.js';
+import { createTerminalUi } from './ui.js';
 import type { Source } from '../types/source.js';
 
 const LEGACY_DEFAULT_FETCH_LIMIT = 100;
@@ -46,17 +47,26 @@ export async function fetchProjectSources(options: FetchRunOptions = {}): Promis
   const limit = options.limit ?? normalizeFetchLimit(config.fetch_limit);
   const results: FetchSourceResult[] = [];
   const seenDuplicateKeys = new Set((await loadContentItems(cwd)).map((item) => getContentDuplicateKey(item)));
+  const ui = createTerminalUi();
 
   for (const source of selectedSources) {
     const spinner = ora(`Fetching ${source.id}...`).start();
     const startedAt = Date.now();
     let statusMessage = 'starting';
+    let progressCurrent: number | null = null;
+    let progressTotal: number | null = null;
     const renderSpinnerText = () => {
-      spinner.text = `Fetching ${source.id} — ${statusMessage} (${formatElapsed(Date.now() - startedAt)})`;
+      const progressLabel =
+        progressCurrent !== null && progressTotal !== null
+          ? ` ${ui.progressBar(progressCurrent, progressTotal, { color: 'cyan' })} ${progressCurrent}/${progressTotal}`
+          : '';
+      spinner.text = `Fetching ${source.id} — ${statusMessage}${progressLabel} (${formatElapsed(Date.now() - startedAt)})`;
     };
     const statusInterval = setInterval(renderSpinnerText, 1000);
-    const updateStatus = (message: string) => {
+    const updateStatus = (message: string, progress?: { current: number; total: number }) => {
       statusMessage = message;
+      progressCurrent = progress?.current ?? null;
+      progressTotal = progress?.total ?? null;
       renderSpinnerText();
     };
 
@@ -86,7 +96,7 @@ export async function fetchProjectSources(options: FetchRunOptions = {}): Promis
       let added = 0;
       let duplicateSkipped = 0;
       for (const [index, item] of items.entries()) {
-        updateStatus(`saving ${index + 1}/${items.length} items`);
+        updateStatus('saving items', { current: index + 1, total: items.length });
         const duplicateKey = getContentDuplicateKey(item);
         const outputPath = getContentItemPath(item.source_id, item.id, cwd);
         const existedInThisSource = await pathExists(outputPath);

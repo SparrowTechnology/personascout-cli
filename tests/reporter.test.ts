@@ -62,8 +62,12 @@ describe('buildCoverageReport', () => {
 
     const terminal = renderTerminalReport(report);
     expect(terminal).toContain('ICP COVERAGE');
+    expect(terminal).toContain('Shows the total number of classified content pieces');
+    expect(terminal).toContain('FUNNEL BALANCE');
+    expect(terminal).toContain('COVERAGE DETAIL');
     expect(terminal).toContain('GAPS DETECTED');
     expect(terminal).toContain('threshold: 2');
+    expect(terminal).toContain("Next: Run 'personascout generate --all --format brief'");
 
     const json = renderJsonReport(report);
     expect(json).toContain('"coverage_matrix"');

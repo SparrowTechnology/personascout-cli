@@ -1,6 +1,6 @@
-import chalk from 'chalk';
 import type { Command } from 'commander';
 import { fetchProjectSources } from '../lib/fetch.js';
+import { createTerminalUi } from '../lib/ui.js';
 
 export function registerFetchCommand(program: Command): void {
   program
@@ -17,7 +17,9 @@ export function registerFetchCommand(program: Command): void {
         limit?: number;
         force?: boolean;
       }) => {
-        console.log('Fetching content sources...');
+        const ui = createTerminalUi();
+        console.log(ui.section('FETCH'));
+        console.log(ui.caption('Pulls content from your configured sources and stores normalized items for later classification.'));
         console.log('');
 
         const results = await fetchProjectSources({
@@ -40,10 +42,8 @@ export function registerFetchCommand(program: Command): void {
         }
 
         console.log('');
-        console.log(
-          `Total: ${totalFetched} items fetched, ${totalAdded} new${totalDuplicateSkipped > 0 ? `, ${totalDuplicateSkipped} duplicates skipped` : ''}`,
-        );
-        console.log("Run 'personascout classify' to analyse coverage.");
+        console.log(ui.muted(`Total: ${totalFetched} items fetched, ${totalAdded} new${totalDuplicateSkipped > 0 ? `, ${totalDuplicateSkipped} duplicates skipped` : ''}`));
+        console.log(`${ui.accent("Next:")} personascout classify`);
       },
     );
 }

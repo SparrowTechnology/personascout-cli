@@ -3,6 +3,7 @@ import ora from 'ora';
 import type { Command } from 'commander';
 import { classifyContentItem } from '../lib/classifiers/index.js';
 import { buildClassificationPlan, runClassification } from '../lib/classify.js';
+import { createTerminalUi } from '../lib/ui.js';
 
 export function registerClassifyCommand(program: Command): void {
   program
@@ -23,6 +24,7 @@ export function registerClassifyCommand(program: Command): void {
         source?: string;
         since?: string;
       }) => {
+        const ui = createTerminalUi();
         const plan = await buildClassificationPlan({
           providerId: options.provider,
           model: options.model,
@@ -50,39 +52,54 @@ export function registerClassifyCommand(program: Command): void {
           return;
         }
 
-        const spinner = ora(`Classifying ${plan.items_to_classify.length} items... [0/${plan.items_to_classify.length}]`).start();
+        const startedAt = Date.now();
+        const spinner = ora('').start();
         let completed = 0;
+        const renderSpinnerText = () => {
+          spinner.text = `Classifying ${ui.progressBar(completed, plan.items_to_classify.length, { color: 'green' })} ${completed}/${plan.items_to_classify.length} (${formatElapsed(Date.now() - startedAt)})`;
+        };
+        const statusInterval = setInterval(renderSpinnerText, 1000);
+        renderSpinnerText();
 
-        const { result, outputPath, skipped } = await runClassification(
-          {
-            providerId: options.provider,
-            model: options.model,
-            sourceId: options.source,
-            since: options.since,
-            force: Boolean(options.force),
-          },
-          {
-            classifyItem: async (provider, model, personas, item) => {
-              const scores = await classifyContentItem(provider, model, personas, item);
-              completed += 1;
-              spinner.text = `Classifying ${plan.items_to_classify.length} items... [${completed}/${plan.items_to_classify.length}]`;
-              return scores;
+        try {
+          const { result, outputPath, skipped } = await runClassification(
+            {
+              providerId: options.provider,
+              model: options.model,
+              sourceId: options.source,
+              since: options.since,
+              force: Boolean(options.force),
             },
-          },
-        );
+            {
+              classifyItem: async (provider, model, personas, item) => {
+                const scores = await classifyContentItem(provider, model, personas, item);
+                completed += 1;
+                renderSpinnerText();
+                return scores;
+              },
+            },
+          );
 
-        spinner.succeed(`Classified ${result.item_count} items.`);
-        if (skipped > 0) {
-          console.log(chalk.yellow(`Skipped ${skipped} items after repeated JSON parse failures.`));
+          clearInterval(statusInterval);
+          spinner.succeed(`Classified ${result.item_count} items in ${formatElapsed(Date.now() - startedAt)}.`);
+          if (skipped > 0) {
+            console.log(chalk.yellow(`Skipped ${skipped} items after repeated JSON parse failures.`));
+          }
+          console.log(`${ui.success('Saved result:')} ${outputPath}`);
+          console.log(`${ui.accent('Next:')} personascout report`);
+        } catch (error) {
+          clearInterval(statusInterval);
+          spinner.fail(`Classification failed after ${formatElapsed(Date.now() - startedAt)}.`);
+          throw error;
         }
-        console.log(`${chalk.green('Saved result:')} ${outputPath}`);
-        console.log("Run 'personascout report' to view coverage.");
       },
     );
 }
 
 function renderDryRun(plan: Awaited<ReturnType<typeof buildClassificationPlan>>): void {
-  console.log('Classification dry run');
+  const ui = createTerminalUi();
+  console.log(ui.section('CLASSIFICATION DRY RUN'));
+  console.log(ui.caption('Shows the estimated scope, token usage, and cost before sending any content to a model.'));
   console.log('');
   console.log(`Provider:              ${plan.provider.id}`);
   console.log(`Model:                 ${plan.model}`);
@@ -109,4 +126,16 @@ function parseIsoDate(value: string): string {
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat('en-US').format(value);
+}
+
+function formatElapsed(durationMs: number): string {
+  const totalSeconds = Math.max(0, Math.floor(durationMs / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s`;
+  }
+
+  return `${seconds}s`;
 }
