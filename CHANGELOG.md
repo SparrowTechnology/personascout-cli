@@ -2,7 +2,7 @@
 
 ## 0.1.0 - 2026-04-12
 
-First public release candidate. This completes the initial CLI scope and is the baseline for the first npm release.
+First public release. This completes the initial CLI scope and is the baseline for public npm distribution.
 
 ### Added
 
@@ -47,6 +47,6 @@ First public release candidate. This completes the initial CLI scope and is the 
 
 ### Notes
 
-- The npm package is not published yet.
-- `npm pack --dry-run` is clean and the package contents are ready for first publish.
-- This release candidate completes the first major build pass from the original CLI brief before public npm release.
+- Published on npm as `personascout@0.1.0`.
+- `npm pack --dry-run` was clean before publish.
+- This release completes the first major build pass from the original CLI brief.

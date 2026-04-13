@@ -3,6 +3,7 @@
 Map your content against your ICPs. Find the gaps. Fill them.
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![npm version](https://img.shields.io/npm/v/personascout.svg)](https://www.npmjs.com/package/personascout)
 [![Node.js ≥ 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
 
 `personascout` is a local-first CLI for B2B teams that want to understand how well their content serves their ideal customer profiles across the funnel. It ingests content from RSS feeds, websites, and CSV exports, classifies each piece against your personas, and highlights where your coverage is thin.
@@ -128,7 +129,7 @@ Publishing calendars, analytics dashboards, and keyword tools do not answer that
 
 ## Current Status
 
-`personascout` is now at its first public release-candidate milestone. What exists today:
+`personascout` is now publicly released on npm and GitHub. What exists today:
 
 - `personascout init`
 - `personascout status`
@@ -157,22 +158,33 @@ Publishing calendars, analytics dashboards, and keyword tools do not answer that
 
 What is planned next:
 
-- first npm release
 - source editing
 
 ## Install
 
-The npm package is not published yet, but `0.1.0` is now release-ready and has been checked with `npm pack --dry-run`.
-
-For now, clone the repo and run it locally:
+Install from npm:
 
 ```bash
+npm install -g personascout
+personascout --help
+```
+
+Current public release:
+
+- npm: https://www.npmjs.com/package/personascout
+- GitHub release: https://github.com/SparrowTechnology/personascout-cli/releases/tag/v0.1.0
+
+If you want to run from source instead:
+
+```bash
+git clone https://github.com/SparrowTechnology/personascout-cli.git
+cd personascout-cli
 npm install
 npm run build
 node dist/index.js --help
 ```
 
-If you want a local global-style install while testing:
+If you want a local global-style install while developing from source:
 
 ```bash
 npm link
@@ -495,12 +507,11 @@ If you contribute code, keep in mind the design bias of the project:
 
 Near-term milestones:
 
-- first npm release
 - source editing
 
 ## Release Notes
 
-The first public release candidate is tracked in [CHANGELOG.md](./CHANGELOG.md).
+Release history is tracked in [CHANGELOG.md](./CHANGELOG.md). The current public release is [`v0.1.0`](https://github.com/SparrowTechnology/personascout-cli/releases/tag/v0.1.0).
 
 Longer-term polish:
 
