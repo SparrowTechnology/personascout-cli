@@ -106,6 +106,12 @@ personascout diff
 personascout generate --all --format brief
 ```
 
+## Example Output
+
+This is the kind of terminal coverage report PersonaScout produces after classification:
+
+![Example PersonaScout report output](./examples/example-output.png)
+
 ## Why This Exists
 
 Most content audits break down at the moment a team asks a simple question:
@@ -463,6 +469,16 @@ The current implementation lives mainly in:
 - `src/commands`
 - `src/lib`
 - `src/types`
+
+## Acknowledgements
+
+It is common to credit the libraries that materially shape the product experience, especially in CLI/open-source projects. PersonaScout currently leans on:
+
+- `chartscii` and `styl3` for the graphical terminal report and themed CLI output
+- `Firecrawl` for richer website extraction when an API key is configured
+- `Commander` for CLI structure
+- `Zod` for schema validation
+- `Vitest` for test coverage
 
 ## Contributing
 
