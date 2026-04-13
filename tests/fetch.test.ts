@@ -6,6 +6,7 @@ import { mkdtemp } from 'node:fs/promises';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createDefaultConfig, getProjectPaths, initializeProject } from '../src/lib/config.js';
 import { fetchProjectSources } from '../src/lib/fetch.js';
+import { loadContentItems } from '../src/lib/results.js';
 import { saveSource } from '../src/lib/source.js';
 
 const tempDirs: string[] = [];
@@ -231,6 +232,72 @@ describe('fetchProjectSources', () => {
       fetched: 101,
       added: 101,
     });
+  });
+
+  it('deduplicates matching content across different sources', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'personascout-fetch-dedupe-'));
+    tempDirs.push(cwd);
+
+    await initializeProject(
+      createDefaultConfig({
+        companyName: 'Acme',
+        website: 'https://example.com',
+        providerId: 'anthropic',
+        model: 'claude-haiku-4-5',
+      }),
+      cwd,
+    );
+
+    const feedOne = await startFeedServer(`<?xml version="1.0" encoding="UTF-8" ?>
+      <rss version="2.0">
+        <channel>
+          <title>Feed One</title>
+          <item>
+            <title>Shared Post</title>
+            <link>http://127.0.0.1:43127/posts/shared/</link>
+            <description>Shared item</description>
+          </item>
+        </channel>
+      </rss>`);
+
+    const feedTwo = await startFeedServer(`<?xml version="1.0" encoding="UTF-8" ?>
+      <rss version="2.0">
+        <channel>
+          <title>Feed Two</title>
+          <item>
+            <title>Shared Post</title>
+            <link>http://127.0.0.1:43127/posts/shared</link>
+            <description>Shared item</description>
+          </item>
+        </channel>
+      </rss>`);
+
+    servers.push(feedOne.server, feedTwo.server);
+
+    await saveSource(
+      {
+        type: 'rss',
+        label: 'Alpha Feed',
+        url: feedOne.url,
+      },
+      cwd,
+    );
+
+    await saveSource(
+      {
+        type: 'rss',
+        label: 'Beta Feed',
+        url: feedTwo.url,
+      },
+      cwd,
+    );
+
+    const results = await fetchProjectSources({ cwd });
+    const totalDuplicates = results.reduce((sum, entry) => sum + entry.duplicate_skipped, 0);
+    const items = await loadContentItems(cwd);
+
+    expect(totalDuplicates).toBe(1);
+    expect(items).toHaveLength(1);
   });
 
   it('fetches website pages with cheerio fallback and respects crawl depth', async () => {

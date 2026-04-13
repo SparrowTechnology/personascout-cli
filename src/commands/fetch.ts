@@ -29,16 +29,20 @@ export function registerFetchCommand(program: Command): void {
 
         let totalFetched = 0;
         let totalAdded = 0;
+        let totalDuplicateSkipped = 0;
 
         for (const result of results) {
           if (result.status === 'fetched') {
             totalFetched += result.fetched;
             totalAdded += result.added;
+            totalDuplicateSkipped += result.duplicate_skipped;
           }
         }
 
         console.log('');
-        console.log(`Total: ${totalFetched} items fetched, ${totalAdded} new`);
+        console.log(
+          `Total: ${totalFetched} items fetched, ${totalAdded} new${totalDuplicateSkipped > 0 ? `, ${totalDuplicateSkipped} duplicates skipped` : ''}`,
+        );
         console.log("Run 'personascout classify' to analyse coverage.");
       },
     );

@@ -1,9 +1,10 @@
 import ora from 'ora';
-import { readConfig } from './config.js';
-import { writeContentItem } from './content.js';
+import { pathExists, readConfig } from './config.js';
+import { getContentDuplicateKey, getContentItemPath, writeContentItem } from './content.js';
 import { fetchCsvSource } from './fetchers/csv.js';
 import { fetchRssSource } from './fetchers/rss.js';
 import { fetchWebsiteSource } from './fetchers/website.js';
+import { loadContentItems } from './results.js';
 import { listSources, updateSourceMetadata } from './source.js';
 import type { Source } from '../types/source.js';
 
@@ -22,6 +23,7 @@ export interface FetchSourceResult {
   status: 'fetched' | 'skipped' | 'failed';
   fetched: number;
   added: number;
+  duplicate_skipped: number;
   reason?: string;
 }
 
@@ -43,6 +45,7 @@ export async function fetchProjectSources(options: FetchRunOptions = {}): Promis
 
   const limit = options.limit ?? normalizeFetchLimit(config.fetch_limit);
   const results: FetchSourceResult[] = [];
+  const seenDuplicateKeys = new Set((await loadContentItems(cwd)).map((item) => getContentDuplicateKey(item)));
 
   for (const source of selectedSources) {
     const spinner = ora(`Fetching ${source.id}...`).start();
@@ -81,11 +84,21 @@ export async function fetchProjectSources(options: FetchRunOptions = {}): Promis
               });
 
       let added = 0;
+      let duplicateSkipped = 0;
       for (const [index, item] of items.entries()) {
         updateStatus(`saving ${index + 1}/${items.length} items`);
+        const duplicateKey = getContentDuplicateKey(item);
+        const outputPath = getContentItemPath(item.source_id, item.id, cwd);
+        const existedInThisSource = await pathExists(outputPath);
+        if (seenDuplicateKeys.has(duplicateKey) && !existedInThisSource) {
+          duplicateSkipped += 1;
+          continue;
+        }
+
         const result = await writeContentItem(item, cwd, { force: options.force });
         if (!result.existed) {
           added += 1;
+          seenDuplicateKeys.add(duplicateKey);
         }
       }
 
@@ -93,18 +106,21 @@ export async function fetchProjectSources(options: FetchRunOptions = {}): Promis
         source.id,
         {
           last_fetched: new Date().toISOString(),
-          item_count: items.length,
+          item_count: items.length - duplicateSkipped,
         },
         cwd,
       );
 
       clearInterval(statusInterval);
-      spinner.succeed(`${source.id} — ${items.length} items (${added} new, ${formatElapsed(Date.now() - startedAt)})`);
+      spinner.succeed(
+        `${source.id} — ${items.length} items (${added} new${duplicateSkipped > 0 ? `, ${duplicateSkipped} duplicates skipped` : ''}, ${formatElapsed(Date.now() - startedAt)})`,
+      );
       results.push({
         source,
         status: 'fetched',
         fetched: items.length,
         added,
+        duplicate_skipped: duplicateSkipped,
       });
     } catch (error) {
       clearInterval(statusInterval);
@@ -115,6 +131,7 @@ export async function fetchProjectSources(options: FetchRunOptions = {}): Promis
         status: 'failed',
         fetched: 0,
         added: 0,
+        duplicate_skipped: 0,
         reason,
       });
     }

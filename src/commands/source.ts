@@ -143,7 +143,8 @@ export function registerSourceCommand(program: Command): void {
           const results = await fetchProjectSources({ sourceId: savedSource.id });
           const fetched = results.reduce((sum, entry) => sum + entry.fetched, 0);
           const added = results.reduce((sum, entry) => sum + entry.added, 0);
-          console.log(`Total: ${fetched} items fetched, ${added} new`);
+          const duplicateSkipped = results.reduce((sum, entry) => sum + entry.duplicate_skipped, 0);
+          console.log(`Total: ${fetched} items fetched, ${added} new${duplicateSkipped > 0 ? `, ${duplicateSkipped} duplicates skipped` : ''}`);
           return;
         }
 
