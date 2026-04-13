@@ -81,6 +81,7 @@ export function registerInitCommand(program: Command): void {
       console.log(chalk.green('✓ PersonaScout initialised'));
       console.log('');
       console.log('Next steps:');
+      console.log('  personascout persona templates  — browse built-in persona templates');
       console.log('  personascout persona generate   — create your first ICP with AI');
       console.log('  personascout persona use cfo    — start from a template');
       console.log('  personascout source add         — add a content source');

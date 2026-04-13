@@ -39,6 +39,7 @@ Publishing calendars, analytics dashboards, and keyword tools do not answer that
 
 - `personascout init`
 - `personascout persona list`
+- `personascout persona templates`
 - `personascout persona add --interactive`
 - `personascout persona add --file <path>`
 - `personascout persona validate`
@@ -99,6 +100,13 @@ personascout persona add --file ./persona.json
 ```
 
 Start from a bundled persona template:
+
+```bash
+personascout persona templates
+personascout persona use cfo
+```
+
+Or directly copy a known template:
 
 ```bash
 personascout persona use cfo
@@ -173,6 +181,7 @@ Current subcommands:
 
 - `personascout persona list`
 - `personascout persona list --templates`
+- `personascout persona templates`
 - `personascout persona add --interactive`
 - `personascout persona add --file <path>`
 - `personascout persona use <template-id>`

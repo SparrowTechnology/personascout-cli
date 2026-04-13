@@ -23,25 +23,32 @@ import { getPersonaTemplate, listPersonaTemplates } from '../lib/persona-templat
 
 export function registerPersonaCommand(program: Command): void {
   const persona = program.command('persona').description('Manage buyer personas');
+  const templateIds = listPersonaTemplates().map((entry) => entry.id);
 
   persona
     .command('list')
     .description('List personas')
-    .option('--templates', 'list built-in persona templates')
+    .option('--templates', 'list built-in persona templates instead of project personas')
     .action(async (options: { templates?: boolean }) => {
       if (options.templates) {
-        const templates = listPersonaTemplates();
-        renderPersonaTable(templates);
+        renderPersonaTemplateTable(listPersonaTemplates());
         return;
       }
 
       const personas = await listPersonas();
 
       if (personas.length === 0) {
-        console.log("No personas defined. Run 'personascout persona generate' to create one.");
+        console.log("No personas defined. Run 'personascout persona templates' to browse built-ins or 'personascout persona generate' to create one.");
         return;
       }
       renderPersonaTable(personas);
+    });
+
+  persona
+    .command('templates')
+    .description('List built-in persona templates')
+    .action(() => {
+      renderPersonaTemplateTable(listPersonaTemplates());
     });
 
   persona
@@ -160,6 +167,10 @@ export function registerPersonaCommand(program: Command): void {
     .command('use <templateId>')
     .description('Copy a built-in persona template into the project')
     .option('-f, --force', 'overwrite an existing persona')
+    .addHelpText(
+      'after',
+      `\nExamples:\n  personascout persona templates\n  personascout persona use cfo\n  personascout persona use vp-marketing\n\nAvailable templates:\n  ${templateIds.join(', ')}\n`,
+    )
     .action(async (templateId: string, options: { force?: boolean }) => {
       const personaTemplate = getPersonaTemplate(templateId);
       const outputPath = getPersonaPath(personaTemplate.id);
@@ -284,6 +295,24 @@ function renderPersonaTable(personas: Array<{ id: string; name: string; titles: 
   console.log(table.toString());
 }
 
+function renderPersonaTemplateTable(personas: Array<{ id: string; name: string; titles: string[]; company_size: string[] }>): void {
+  const table = new Table({
+    head: ['ID', 'NAME', 'TITLES', 'COMPANY SIZE'],
+    style: { head: [], border: [] },
+  });
+
+  for (const entry of personas) {
+    table.push([
+      entry.id,
+      entry.name,
+      summariseTitles(entry.titles),
+      summariseCompanySize(entry.company_size),
+    ]);
+  }
+
+  console.log(table.toString());
+}
+
 async function promptForInteractivePersona() {
   const id = await input({
     message: 'Persona ID',
@@ -352,4 +381,12 @@ function requireValue(message: string): (value: string) => true | string {
 
 function validateLineCount(minimum: number, message: string): (value: string) => true | string {
   return (value: string) => (splitLineSeparatedValues(value).length >= minimum ? true : message);
+}
+
+function summariseCompanySize(companySizes: string[]): string {
+  if (companySizes.length <= 2) {
+    return companySizes.join(', ');
+  }
+
+  return `${companySizes.slice(0, 2).join(', ')} (+${companySizes.length - 2})`;
 }
