@@ -9,6 +9,7 @@ import { registerInitCommand } from './commands/init.js';
 import { registerPersonaCommand } from './commands/persona.js';
 import { registerProvidersCommand } from './commands/providers.js';
 import { registerReportCommand } from './commands/report.js';
+import { registerStatusCommand } from './commands/status.js';
 import { registerSourceCommand } from './commands/source.js';
 
 const program = new Command();
@@ -21,6 +22,7 @@ program
 
 registerInitCommand(program);
 registerPersonaCommand(program);
+registerStatusCommand(program);
 registerSourceCommand(program);
 registerFetchCommand(program);
 registerProvidersCommand(program);

@@ -34,6 +34,7 @@ The CLI commands for that first pass are:
 
 ```bash
 personascout init
+personascout status
 
 # define personas
 personascout persona templates
@@ -97,6 +98,7 @@ Once the project is set up, the regular workflow is simpler. On a monthly or qua
 Typical recurring commands:
 
 ```bash
+personascout status
 personascout fetch
 personascout classify
 personascout report
@@ -123,6 +125,7 @@ Publishing calendars, analytics dashboards, and keyword tools do not answer that
 `personascout` is now at its first public release-candidate milestone. What exists today:
 
 - `personascout init`
+- `personascout status`
 - `personascout persona list`
 - `personascout persona templates`
 - `personascout persona add --interactive`
@@ -262,6 +265,17 @@ This stays local to the directory where you run `personascout init`, unless you 
 ### `personascout init`
 
 Creates the local project structure, writes `config.json`, and updates `.gitignore` so fetched content and result files do not pollute the repo.
+
+### `personascout status`
+
+Shows the current project state at a glance:
+
+- how many personas are defined
+- how many sources are configured and fetched
+- how many content items are stored
+- whether classification has been run yet
+- whether the latest classification is stale
+- the suggested next command to run
 
 ### `personascout persona`
 

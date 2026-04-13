@@ -83,6 +83,9 @@ export function registerInitCommand(program: Command): void {
 
       console.log(chalk.green('✓ PersonaScout initialised'));
       console.log('');
+      console.log('Check progress any time with:');
+      console.log('  personascout status');
+      console.log('');
       console.log('Setup flow:');
       console.log('  1. Define your personas');
       console.log('     personascout persona templates');
