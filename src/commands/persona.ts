@@ -18,7 +18,7 @@ import {
   writePersona,
 } from '../lib/persona.js';
 import { pathExists } from '../lib/config.js';
-import { generatePersonaFromDescription, renderPersonaPreview } from '../lib/persona-generator.js';
+import { generatePersonaFromDescription, renderPersonaDetails, renderPersonaPreview } from '../lib/persona-generator.js';
 import { getPersonaTemplate, listPersonaTemplates } from '../lib/persona-templates.js';
 
 export function registerPersonaCommand(program: Command): void {
@@ -49,6 +49,14 @@ export function registerPersonaCommand(program: Command): void {
     .description('List built-in persona templates')
     .action(() => {
       renderPersonaTemplateTable(listPersonaTemplates());
+    });
+
+  persona
+    .command('view <personaId>')
+    .description('View a persona in full')
+    .action(async (personaId: string) => {
+      const entry = await readPersonaById(personaId);
+      console.log(renderPersonaDetails(entry));
     });
 
   persona

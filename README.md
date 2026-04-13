@@ -127,6 +127,7 @@ Publishing calendars, analytics dashboards, and keyword tools do not answer that
 - `personascout persona templates`
 - `personascout persona add --interactive`
 - `personascout persona add --file <path>`
+- `personascout persona view <id>`
 - `personascout persona validate`
 - `personascout source list`
 - `personascout source add`
@@ -139,6 +140,7 @@ Publishing calendars, analytics dashboards, and keyword tools do not answer that
 - `personascout generate`
 - `personascout diff`
 - `personascout persona use <template-id>`
+- `personascout persona view <id>`
 - `personascout persona edit <id>`
 - `personascout persona delete <id>`
 - website crawling with same-domain `cheerio` fallback
@@ -189,6 +191,7 @@ Start from a bundled persona template:
 ```bash
 personascout persona templates
 personascout persona use cfo
+personascout persona view cfo
 ```
 
 Or directly copy a known template:
@@ -270,6 +273,7 @@ Current subcommands:
 - `personascout persona add --interactive`
 - `personascout persona add --file <path>`
 - `personascout persona use <template-id>`
+- `personascout persona view <id>`
 - `personascout persona generate`
 - `personascout persona edit <id>`
 - `personascout persona delete <id>`

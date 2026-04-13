@@ -15,6 +15,7 @@ You will be given:
 Generate a detailed buyer persona in JSON format. 
 
 Rules:
+- name must be a persona type label such as "VP Marketing / Head of Marketing" or "Software Development Agency Partner", never a fictional person's name
 - Write pain_points in the persona's own voice, first person: "I struggle with..." or "We can't..." or "There's no way to..."
 - Write goals from the persona's perspective: what are they trying to achieve?
 - funnel_stages should describe what KIND of content serves this persona at each stage, not just repeat the stage name
@@ -128,8 +129,12 @@ export async function generatePersonaFromDescription(
 }
 
 export function renderPersonaPreview(persona: Persona): string {
+  return renderPersonaDetails(persona, 'Generated Persona');
+}
+
+export function renderPersonaDetails(persona: Persona, heading = 'Persona'): string {
   return [
-    `Generated Persona: ${persona.name}`,
+    `${heading}: ${persona.name}`,
     '',
     `ID: ${persona.id}`,
     `Titles: ${persona.titles.join(', ')}`,
@@ -157,7 +162,8 @@ ${description}`;
 }
 
 function parseGeneratedPersona(rawResponse: string): Persona {
-  return personaSchema.parse(JSON.parse(extractJsonPayload(rawResponse))) as Persona;
+  const parsed = personaSchema.parse(JSON.parse(extractJsonPayload(rawResponse))) as Persona;
+  return normalizeGeneratedPersona(parsed);
 }
 
 function extractJsonPayload(rawResponse: string): string {
@@ -176,4 +182,46 @@ function extractJsonPayload(rawResponse: string): string {
 
 function isParseError(error: unknown): boolean {
   return error instanceof Error || error instanceof z.ZodError;
+}
+
+function normalizeGeneratedPersona(persona: Persona): Persona {
+  if (!looksLikePersonalName(persona.name)) {
+    return persona;
+  }
+
+  return {
+    ...persona,
+    name: buildPersonaTypeName(persona.titles),
+  };
+}
+
+function looksLikePersonalName(value: string): boolean {
+  const trimmed = value.trim();
+  if (!/^[A-Z][a-z]+(?: [A-Z][a-z]+){1,2}$/.test(trimmed)) {
+    return false;
+  }
+
+  return !containsRoleKeyword(trimmed);
+}
+
+function buildPersonaTypeName(titles: string[]): string {
+  const primary = titles[0]?.trim();
+  if (!primary) {
+    return 'Buyer Persona';
+  }
+
+  const secondary = titles[1]?.trim();
+  if (!secondary || secondary.toLowerCase() === primary.toLowerCase()) {
+    return primary;
+  }
+
+  if (secondary.length <= 36) {
+    return `${primary} / ${secondary}`;
+  }
+
+  return primary;
+}
+
+function containsRoleKeyword(value: string): boolean {
+  return /\b(ceo|cto|cfo|cmo|coo|chief|head|director|manager|lead|partner|consultant|analyst|engineer|developer|founder|president|vp)\b/i.test(value);
 }

@@ -311,6 +311,53 @@ describe('persona helpers', () => {
     expect(renderPersonaPreview(result.persona)).toContain('Generated Persona: CFO');
   });
 
+  it('normalizes generated personal names into persona-type labels', async () => {
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'personascout-persona-normalize-'));
+    tempDirs.push(cwd);
+
+    await initializeProject(
+      createDefaultConfig({
+        companyName: 'Acme',
+        website: 'https://example.com',
+        providerId: 'anthropic',
+        model: 'claude-haiku-4-5',
+      }),
+      cwd,
+    );
+
+    const result = await generatePersonaFromDescription(
+      'An agency leader managing client software delivery',
+      { cwd },
+      {
+        scrapeCompanyContext: async () => 'Acme helps agencies report on code quality and delivery risk.',
+        complete: async () =>
+          JSON.stringify({
+            id: 'agency-consultant-persona',
+            name: 'Alex Martinez',
+            titles: ['Partner, Software Development Agency', 'Head of Delivery'],
+            company_size: ['50-500', '500+'],
+            pain_points: [
+              'I struggle to prove delivery quality to clients.',
+              "We can't spend weeks on manual audits.",
+            ],
+            goals: [
+              'Provide faster client reporting.',
+              'Reduce audit time.',
+            ],
+            funnel_stages: {
+              awareness: 'Educational content about code quality risks for agencies.',
+              consideration: 'Comparative content about audit workflows and reporting tools.',
+              decision: 'Proof content focused on implementation and client-facing reporting.',
+            },
+          }),
+      },
+    );
+
+    expect(result.persona.name).toBe('Partner, Software Development Agency / Head of Delivery');
+  });
+
   it('can save a bundled template into the project persona directory', async () => {
     const cwd = await mkdtemp(path.join(os.tmpdir(), 'personascout-persona-template-'));
     tempDirs.push(cwd);
