@@ -1,4 +1,5 @@
 import { readConfig } from './config.js';
+import { formatCommandWithAiBadge } from './ai-hints.js';
 import { listPersonas } from './persona.js';
 import { readSelectedRunResult } from './results.js';
 import { createTerminalUi, pickChartColor } from './ui.js';
@@ -363,5 +364,5 @@ function buildNextStepHint(report: CoverageReport): string {
     return "Next: Run 'personascout diff' to compare against the previous run, or 'personascout fetch' when new content is ready.";
   }
 
-  return "Next: Run 'personascout generate --all --format brief' to turn the current gaps into content ideas and briefs.";
+  return `Next: Run ${formatCommandWithAiBadge('personascout generate --all --format brief')} to turn the current gaps into content ideas and briefs.`;
 }

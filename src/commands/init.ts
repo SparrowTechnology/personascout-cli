@@ -8,6 +8,7 @@ import {
   initializeProject,
   isInitialized,
 } from '../lib/config.js';
+import { formatCommandWithAiBadge } from '../lib/ai-hints.js';
 import { detectShellKind, formatSetEnvCommand, formatShellLabel } from '../lib/shell.js';
 import { BUILT_IN_PROVIDERS } from '../providers.js';
 
@@ -90,7 +91,7 @@ export function registerInitCommand(program: Command): void {
       console.log('  1. Define your personas');
       console.log('     personascout persona templates');
       console.log('     personascout persona use cfo');
-      console.log('     personascout persona generate');
+      console.log(`     ${formatCommandWithAiBadge('personascout persona generate')}`);
       console.log('     personascout persona add --interactive');
       console.log('');
       console.log('  2. Add your content sources');
@@ -100,16 +101,16 @@ export function registerInitCommand(program: Command): void {
       console.log('  3. Fetch content and measure coverage');
       console.log('     personascout fetch');
       console.log('     personascout classify --dry-run');
-      console.log('     personascout classify');
+      console.log(`     ${formatCommandWithAiBadge('personascout classify')}`);
       console.log('     personascout report');
       console.log('');
       console.log('  4. Find and close the gaps');
-      console.log('     personascout generate --all --format brief');
+      console.log(`     ${formatCommandWithAiBadge('personascout generate --all --format brief')}`);
       console.log('     personascout diff');
       console.log('');
       console.log('Regular refresh flow:');
       console.log('  personascout fetch');
-      console.log('  personascout classify');
+      console.log(`  ${formatCommandWithAiBadge('personascout classify')}`);
       console.log('  personascout report');
       console.log('  personascout diff');
 

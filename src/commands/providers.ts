@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import type { Command } from 'commander';
+import { formatCommandWithAiBadge } from '../lib/ai-hints.js';
 import { getProviderStatus, getProviderStatuses } from '../lib/providers.js';
 import { detectShellKind, formatSetEnvCommand, formatShellLabel } from '../lib/shell.js';
 
@@ -51,8 +52,8 @@ function renderProviderList(
 
   console.log('');
   console.log('To use a provider:');
-  console.log('  personascout classify --provider groq');
-  console.log('  personascout classify --provider deepseek --model deepseek-chat');
+  console.log(`  ${formatCommandWithAiBadge('personascout classify --provider groq')}`);
+  console.log(`  ${formatCommandWithAiBadge('personascout classify --provider deepseek --model deepseek-chat')}`);
   console.log('');
   console.log(`To set an API key in ${formatShellLabel(shellKind)}:`);
   console.log(`  ${formatSetEnvCommand('GROQ_API_KEY', shellKind)}`);
@@ -98,7 +99,7 @@ function renderProviderDetail(provider: Awaited<ReturnType<typeof getProviderSta
     console.log('');
     console.log('Then verify readiness or run a command:');
     console.log(`  personascout providers --provider ${provider.id}`);
-    console.log(`  personascout classify --provider ${provider.id}`);
+    console.log(`  ${formatCommandWithAiBadge(`personascout classify --provider ${provider.id}`)}`);
   }
 }
 

@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { select } from '@inquirer/prompts';
 import { z } from 'zod';
+import { formatAiBadge } from './ai-hints.js';
 import { buildCoverageReport, type CoverageGap } from './reporter.js';
 import { readConfig } from './config.js';
 import { createGenerationRunId, writeGenerationRunRecord } from './generation-history.js';
@@ -107,7 +108,7 @@ export async function buildGenerationPlan(options: GenerationOptions = {}): Prom
     all: Boolean(options.all),
   });
   const channel = options.channel ?? await promptForChannel();
-  const format = options.format ?? await promptForFormat();
+  const format = options.format ?? await promptForFormat(provider.id, model);
 
   return {
     provider,
@@ -456,9 +457,9 @@ async function promptForChannel(): Promise<ContentChannel> {
   });
 }
 
-async function promptForFormat(): Promise<GenerationFormat> {
+async function promptForFormat(providerId: string, model: string): Promise<GenerationFormat> {
   return select({
-    message: 'Output mode?',
+    message: `Output mode? ${formatAiBadge()} AI call happens after this selection (${providerId}/${model}). Ctrl+C to cancel.`,
     choices: FORMATS.map((format) => ({
       name: titleCase(format),
       value: format,

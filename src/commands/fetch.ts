@@ -1,4 +1,5 @@
 import type { Command } from 'commander';
+import { formatCommandWithAiBadge } from '../lib/ai-hints.js';
 import { fetchProjectSources } from '../lib/fetch.js';
 import { createTerminalUi } from '../lib/ui.js';
 
@@ -43,7 +44,7 @@ export function registerFetchCommand(program: Command): void {
 
         console.log('');
         console.log(ui.muted(`Total: ${totalFetched} items fetched, ${totalAdded} new${totalDuplicateSkipped > 0 ? `, ${totalDuplicateSkipped} duplicates skipped` : ''}`));
-        console.log(`${ui.accent("Next:")} personascout classify`);
+        console.log(`${ui.accent('Next:')} ${formatCommandWithAiBadge('personascout classify')}`);
       },
     );
 }

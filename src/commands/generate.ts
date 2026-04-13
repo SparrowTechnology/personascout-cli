@@ -1,11 +1,13 @@
 import type { Command } from 'commander';
+import { formatAiBadge } from '../lib/ai-hints.js';
 import { buildGenerationPlan, renderGeneratedArtifact, runGenerationPlan } from '../lib/generator.js';
+import { createTerminalUi } from '../lib/ui.js';
 import type { ContentChannel, GenerationFormat } from '../types/index.js';
 
 export function registerGenerateCommand(program: Command): void {
   program
     .command('generate')
-    .description('Generate content briefs or drafts for detected coverage gaps')
+    .description('Generate content briefs or drafts for detected coverage gaps with an AI provider')
     .option('--provider <id>', 'override the configured provider')
     .option('--model <name>', 'override the model used for generation')
     .option('--result <id>', 'specific classification result run id or filename')
@@ -15,6 +17,7 @@ export function registerGenerateCommand(program: Command): void {
     .option('--format <format>', 'brief or draft output mode', parseFormat)
     .option('--output <dir>', 'write generated artifacts to a directory instead of terminal-only output')
     .option('--all', 'generate one artifact for every detected gap')
+    .addHelpText('after', `\n${formatAiBadge()} This command uses your configured AI provider and may incur token costs.\n`)
     .addHelpText(
       'after',
       `\nBehavior:\n  - 'personascout generate' chooses one detected gap interactively and generates one artifact.\n  - '--all' generates one artifact per detected gap.\n  - '--persona <id> --stage <stage>' targets a specific persona-stage pair.\n  - Without '--output', content is printed to the terminal only.\n  - With '--output ./generated', briefs are saved as JSON and drafts as Markdown.\n\nBrief vs Draft:\n  - brief: structured plan with headline, angle, key points, hook, CTA, and suggested length\n  - draft: full written content ready for editing/publishing\n\nExamples:\n  personascout generate\n  personascout generate --persona cfo --stage awareness --channel blog --format brief\n  personascout generate --all --channel linkedin-article --format brief --output ./generated\n  personascout help generate\n`,
@@ -31,6 +34,7 @@ export function registerGenerateCommand(program: Command): void {
         output?: string;
         all?: boolean;
       }) => {
+        const ui = createTerminalUi();
         const plan = await buildGenerationPlan({
           providerId: options.provider,
           model: options.model,
@@ -43,6 +47,10 @@ export function registerGenerateCommand(program: Command): void {
           all: Boolean(options.all),
         });
 
+        console.log(`${formatAiBadge()} Using ${plan.provider.id}/${plan.model}. This may incur provider usage costs.`);
+        console.log(`${ui.section('GENERATION')}`);
+        console.log(ui.caption('Creates new content briefs or drafts for the selected persona-stage gaps using your configured AI provider.'));
+        console.log('');
         console.log(`Generating ${plan.format} for ${plan.targets.length} target${plan.targets.length === 1 ? '' : 's'}...`);
         console.log('');
 

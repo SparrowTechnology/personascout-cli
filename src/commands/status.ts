@@ -1,5 +1,6 @@
 import Table from 'cli-table3';
 import type { Command } from 'commander';
+import { formatCommandWithAiBadge } from '../lib/ai-hints.js';
 import { buildProjectStatus } from '../lib/status.js';
 import { createTerminalUi } from '../lib/ui.js';
 
@@ -171,7 +172,7 @@ function renderNextStep(status: Awaited<ReturnType<typeof buildProjectStatus>>, 
   console.log(ui.caption('Shows the most useful next command based on the current project state, with sensible follow-ups after it.'));
   console.log('');
   console.log(status.next_step.title);
-  console.log(`  ${ui.accent(status.next_step.command)}`);
+  console.log(`  ${formatCommandWithAiBadge(status.next_step.command)}`);
 
   if (status.next_step.reasons.length > 0) {
     console.log('');
@@ -185,7 +186,7 @@ function renderNextStep(status: Awaited<ReturnType<typeof buildProjectStatus>>, 
     console.log('');
     console.log(ui.muted('Then'));
     for (const command of status.next_step.follow_up_commands) {
-      console.log(`  ${ui.info(command)}`);
+      console.log(`  ${formatCommandWithAiBadge(command)}`);
     }
   }
 }

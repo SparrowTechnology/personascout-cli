@@ -17,9 +17,11 @@ import {
   validatePersonaDirectory,
   writePersona,
 } from '../lib/persona.js';
+import { formatAiBadge } from '../lib/ai-hints.js';
 import { pathExists } from '../lib/config.js';
 import { generatePersonaFromDescription, renderPersonaDetails, renderPersonaPreview } from '../lib/persona-generator.js';
 import { getPersonaTemplate, listPersonaTemplates } from '../lib/persona-templates.js';
+import { createTerminalUi } from '../lib/ui.js';
 
 export function registerPersonaCommand(program: Command): void {
   const persona = program.command('persona').description('Manage buyer personas');
@@ -98,21 +100,25 @@ export function registerPersonaCommand(program: Command): void {
 
   persona
     .command('generate')
-    .description('Generate a persona with AI')
+    .description('Generate a persona with an AI provider')
     .option('--description <text>', 'describe the persona to target')
     .option('--provider <id>', 'override the configured provider')
     .option('--model <name>', 'override the model used for generation')
+    .addHelpText('after', `\n${formatAiBadge()} This command uses your configured AI provider and may incur token costs.\n`)
     .action(async (options: { description?: string; provider?: string; model?: string }) => {
+      const ui = createTerminalUi();
       const description = options.description ?? await input({
-        message: 'Describe the persona you want to target:',
+        message: `Describe the persona you want to target: ${formatAiBadge()} AI call happens after this prompt. Ctrl+C to cancel.`,
         required: true,
       });
 
       console.log('Scraping company website for context...');
-      const { persona: generatedPersona } = await generatePersonaFromDescription(description, {
+      const { persona: generatedPersona, provider, model } = await generatePersonaFromDescription(description, {
         providerId: options.provider,
         model: options.model,
       });
+      console.log(`${formatAiBadge()} Using ${provider.id}/${model}. This may incur provider usage costs.`);
+      console.log(ui.caption('The generated persona is a draft. Review and edit it before saving it into your project.'));
 
       let currentPersona = generatedPersona;
 

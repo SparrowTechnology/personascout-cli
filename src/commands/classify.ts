@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import type { Command } from 'commander';
+import { formatAiBadge, formatCommandWithAiBadge } from '../lib/ai-hints.js';
 import { classifyContentItem } from '../lib/classifiers/index.js';
 import { buildClassificationPlan, runClassification } from '../lib/classify.js';
 import { createTerminalUi } from '../lib/ui.js';
@@ -8,13 +9,14 @@ import { createTerminalUi } from '../lib/ui.js';
 export function registerClassifyCommand(program: Command): void {
   program
     .command('classify')
-    .description('Classify fetched content against your personas')
+    .description('Classify fetched content against your personas with an AI provider')
     .option('--provider <id>', 'override the configured provider')
     .option('--model <name>', 'override the model used for classification')
     .option('--dry-run', 'estimate tokens and cost without calling a model')
     .option('--force', 'reclassify items even if the latest run already contains them')
     .option('--source <id>', 'only classify content from a single source')
     .option('--since <date>', 'only classify items published after this ISO date', parseIsoDate)
+    .addHelpText('after', `\n${formatAiBadge()} This command uses your configured AI provider unless you pass --dry-run. Live classification may incur token costs.\n`)
     .action(
       async (options: {
         provider?: string;
@@ -52,6 +54,7 @@ export function registerClassifyCommand(program: Command): void {
           return;
         }
 
+        console.log(`${formatAiBadge()} Using ${plan.provider.id}/${plan.model}. This may incur provider usage costs.`);
         const startedAt = Date.now();
         const spinner = ora('').start();
         let completed = 0;
@@ -113,6 +116,8 @@ function renderDryRun(plan: Awaited<ReturnType<typeof buildClassificationPlan>>)
   console.log(
     `Estimated cost:        ${plan.usage.estimated_cost_usd === null ? 'n/a for this provider/model' : `$${plan.usage.estimated_cost_usd.toFixed(3)} (approx)`}`,
   );
+  console.log('');
+  console.log(`Run ${formatCommandWithAiBadge('personascout classify')} to execute the live model call.`);
 }
 
 function parseIsoDate(value: string): string {

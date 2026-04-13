@@ -67,7 +67,7 @@ describe('buildCoverageReport', () => {
     expect(terminal).toContain('COVERAGE DETAIL');
     expect(terminal).toContain('GAPS DETECTED');
     expect(terminal).toContain('threshold: 2');
-    expect(terminal).toContain("Next: Run 'personascout generate --all --format brief'");
+    expect(terminal).toContain("Next: Run personascout generate --all --format brief [AI]");
 
     const json = renderJsonReport(report);
     expect(json).toContain('"coverage_matrix"');
