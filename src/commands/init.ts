@@ -8,6 +8,7 @@ import {
   initializeProject,
   isInitialized,
 } from '../lib/config.js';
+import { detectShellKind, formatSetEnvCommand, formatShellLabel } from '../lib/shell.js';
 import { BUILT_IN_PROVIDERS } from '../providers.js';
 
 export function registerInitCommand(program: Command): void {
@@ -78,6 +79,8 @@ export function registerInitCommand(program: Command): void {
       await initializeProject(config, cwd);
       await appendProjectGitignoreEntries(cwd);
 
+      const shellKind = detectShellKind();
+
       console.log(chalk.green('✓ PersonaScout initialised'));
       console.log('');
       console.log('Setup flow:');
@@ -106,6 +109,13 @@ export function registerInitCommand(program: Command): void {
       console.log('  personascout classify');
       console.log('  personascout report');
       console.log('  personascout diff');
+
+      if (provider.requires_key) {
+        console.log('');
+        console.log(`Before using AI commands with ${provider.id}, set your API key in ${formatShellLabel(shellKind)}:`);
+        console.log(`  ${formatSetEnvCommand(provider.api_key_env, shellKind)}`);
+        console.log(`  personascout providers --provider ${provider.id}`);
+      }
     });
 }
 

@@ -66,6 +66,24 @@ Most teams will define sources as a mix of:
 - RSS feeds
 - CSV exports from blogs, newsletters, CMSs, or social/content tools
 
+If your chosen provider needs an API key, set it in your shell before running AI-backed commands such as `persona generate`, `classify`, or `generate`.
+
+Examples:
+
+```powershell
+$env:ANTHROPIC_API_KEY="your_key_here"
+```
+
+```bash
+export ANTHROPIC_API_KEY=your_key_here
+```
+
+You can inspect the exact env var name for any provider with:
+
+```bash
+personascout providers --provider anthropic
+```
+
 ## Ongoing Workflow
 
 Once the project is set up, the regular workflow is simpler. On a monthly or quarterly cadence, you usually:

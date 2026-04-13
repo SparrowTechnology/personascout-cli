@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import type { Command } from 'commander';
 import { getProviderStatus, getProviderStatuses } from '../lib/providers.js';
+import { detectShellKind, formatSetEnvCommand, formatShellLabel } from '../lib/shell.js';
 
 export function registerProvidersCommand(program: Command): void {
   program
@@ -22,6 +23,8 @@ export function registerProvidersCommand(program: Command): void {
 function renderProviderList(
   providers: Awaited<ReturnType<typeof getProviderStatuses>>,
 ): void {
+  const shellKind = detectShellKind();
+
   console.log('Available providers');
   console.log('');
 
@@ -51,13 +54,15 @@ function renderProviderList(
   console.log('  personascout classify --provider groq');
   console.log('  personascout classify --provider deepseek --model deepseek-chat');
   console.log('');
-  console.log('To set an API key:');
-  console.log('  export GROQ_API_KEY=your_key_here');
+  console.log(`To set an API key in ${formatShellLabel(shellKind)}:`);
+  console.log(`  ${formatSetEnvCommand('GROQ_API_KEY', shellKind)}`);
   console.log('');
   console.log("To add a custom provider, add to 'providers' in .personascout/config.json");
 }
 
 function renderProviderDetail(provider: Awaited<ReturnType<typeof getProviderStatus>>): void {
+  const shellKind = detectShellKind();
+
   console.log(`Provider: ${provider.id}`);
   console.log('');
   console.log(`Name:           ${provider.display_name}`);
@@ -84,6 +89,16 @@ function renderProviderDetail(provider: Awaited<ReturnType<typeof getProviderSta
     console.log('');
     console.log('Notes:');
     console.log(`  ${provider.notes}`);
+  }
+
+  if (provider.requires_key) {
+    console.log('');
+    console.log(`Set API key in ${formatShellLabel(shellKind)}:`);
+    console.log(`  ${formatSetEnvCommand(provider.api_key_env, shellKind)}`);
+    console.log('');
+    console.log('Then verify readiness or run a command:');
+    console.log(`  personascout providers --provider ${provider.id}`);
+    console.log(`  personascout classify --provider ${provider.id}`);
   }
 }
 
