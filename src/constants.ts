@@ -4,5 +4,5 @@ export const DEFAULT_COVERAGE_THRESHOLDS = {
   adequate: 3,
 } as const;
 
-export const DEFAULT_FETCH_LIMIT = 100;
+export const DEFAULT_FETCH_LIMIT = 0;
 export const DEFAULT_FETCH_DEPTH = 2;

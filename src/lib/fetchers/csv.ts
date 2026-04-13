@@ -10,6 +10,7 @@ export interface FetchCsvOptions {
   since?: string;
   limit: number;
   now?: string;
+  onProgress?: (message: string) => void;
 }
 
 export async function fetchCsvSource(source: Source, options: FetchCsvOptions): Promise<ContentItem[]> {
@@ -22,12 +23,14 @@ export async function fetchCsvSource(source: Source, options: FetchCsvOptions): 
   }
 
   const csvPath = path.resolve(source.file);
+  options.onProgress?.('reading csv file');
   const raw = readFileSync(csvPath, 'utf8');
   const rows = parse(raw, {
     columns: true,
     skip_empty_lines: true,
     bom: true,
   }) as Array<Record<string, string>>;
+  options.onProgress?.(`parsed ${rows.length} csv row${rows.length === 1 ? '' : 's'}`);
 
   const sinceDate = options.since ? new Date(options.since) : null;
   const fetchedAt = options.now ?? new Date().toISOString();
@@ -42,7 +45,7 @@ export async function fetchCsvSource(source: Source, options: FetchCsvOptions): 
 
       return new Date(item.published_at) > sinceDate;
     })
-    .slice(0, options.limit);
+    .slice(0, options.limit > 0 ? options.limit : undefined);
 }
 
 function toContentItem(

@@ -35,7 +35,7 @@ describe('config helpers', () => {
         weak: 2,
         adequate: 3,
       },
-      fetch_limit: 100,
+      fetch_limit: 0,
       fetch_depth: 2,
     });
   });

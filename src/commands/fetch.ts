@@ -8,7 +8,7 @@ export function registerFetchCommand(program: Command): void {
     .description('Fetch content from configured sources')
     .option('--source <id>', 'fetch a single source')
     .option('--since <date>', 'only include items published after this ISO date', parseIsoDate)
-    .option('--limit <n>', 'override the configured fetch limit', parsePositiveInteger)
+    .option('--limit <n>', 'override the configured fetch limit (use 0 for no limit)', parseFetchLimit)
     .option('--force', 're-fetch and overwrite existing items')
     .action(
       async (options: {
@@ -44,10 +44,14 @@ export function registerFetchCommand(program: Command): void {
     );
 }
 
-function parsePositiveInteger(value: string): number {
+function parseFetchLimit(value: string): number {
+  if (value.trim() === 'all') {
+    return 0;
+  }
+
   const parsed = Number.parseInt(value, 10);
-  if (!Number.isInteger(parsed) || parsed < 1) {
-    throw new Error('Limit must be a positive integer.');
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new Error('Limit must be 0 or a positive integer.');
   }
 
   return parsed;

@@ -140,6 +140,99 @@ describe('fetchProjectSources', () => {
     });
   });
 
+  it('treats fetch limit 0 as unlimited', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'personascout-fetch-unlimited-'));
+    tempDirs.push(cwd);
+
+    await initializeProject(
+      createDefaultConfig({
+        companyName: 'Acme',
+        website: 'https://example.com',
+        providerId: 'anthropic',
+        model: 'claude-haiku-4-5',
+      }),
+      cwd,
+    );
+
+    const server = await startFeedServer(`<?xml version="1.0" encoding="UTF-8" ?>
+      <rss version="2.0">
+        <channel>
+          <title>Acme Blog</title>
+          <item><title>One</title><link>http://127.0.0.1:43125/posts/1</link><description>One</description></item>
+          <item><title>Two</title><link>http://127.0.0.1:43125/posts/2</link><description>Two</description></item>
+          <item><title>Three</title><link>http://127.0.0.1:43125/posts/3</link><description>Three</description></item>
+        </channel>
+      </rss>`);
+
+    servers.push(server.server);
+
+    await saveSource(
+      {
+        type: 'rss',
+        label: 'Unlimited Feed',
+        url: server.url,
+      },
+      cwd,
+    );
+
+    const results = await fetchProjectSources({ cwd, limit: 0 });
+
+    expect(results[0]).toMatchObject({
+      status: 'fetched',
+      fetched: 3,
+      added: 3,
+    });
+  });
+
+  it('treats the legacy default fetch limit of 100 as unlimited', async () => {
+    const cwd = await mkdtemp(path.join(os.tmpdir(), 'personascout-fetch-legacy-limit-'));
+    tempDirs.push(cwd);
+
+    const config = createDefaultConfig({
+      companyName: 'Acme',
+      website: 'https://example.com',
+      providerId: 'anthropic',
+      model: 'claude-haiku-4-5',
+    });
+    config.fetch_limit = 100;
+
+    await initializeProject(config, cwd);
+
+    const itemsXml = Array.from({ length: 101 }, (_, index) => `
+      <item>
+        <title>Post ${index + 1}</title>
+        <link>http://127.0.0.1:43126/posts/${index + 1}</link>
+        <description>Item ${index + 1}</description>
+      </item>`).join('');
+
+    const server = await startFeedServer(`<?xml version="1.0" encoding="UTF-8" ?>
+      <rss version="2.0">
+        <channel>
+          <title>Legacy Feed</title>
+          ${itemsXml}
+        </channel>
+      </rss>`);
+
+    servers.push(server.server);
+
+    await saveSource(
+      {
+        type: 'rss',
+        label: 'Legacy Feed',
+        url: server.url,
+      },
+      cwd,
+    );
+
+    const results = await fetchProjectSources({ cwd });
+
+    expect(results[0]).toMatchObject({
+      status: 'fetched',
+      fetched: 101,
+      added: 101,
+    });
+  });
+
   it('fetches website pages with cheerio fallback and respects crawl depth', async () => {
     delete process.env.FIRECRAWL_API_KEY;
 

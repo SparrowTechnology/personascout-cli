@@ -13,6 +13,7 @@ export interface FetchWebsiteOptions {
   httpClient?: Pick<AxiosInstance, 'get'>;
   firecrawlClient?: Pick<Firecrawl, 'crawl'>;
   firecrawlApiKey?: string;
+  onProgress?: (message: string) => void;
 }
 
 export async function fetchWebsiteSource(source: Source, options: FetchWebsiteOptions): Promise<ContentItem[]> {
@@ -38,8 +39,10 @@ async function fetchWebsiteWithFirecrawl(
   options: FetchWebsiteOptions,
   client: Pick<Firecrawl, 'crawl'>,
 ): Promise<ContentItem[]> {
+  options.onProgress?.('crawling with Firecrawl');
+
   const crawl = await client.crawl(source.url!, {
-    limit: options.limit,
+    ...(options.limit > 0 ? { limit: options.limit } : {}),
     maxDiscoveryDepth: options.depth,
     scrapeOptions: {
       formats: ['markdown', 'html'],
@@ -47,7 +50,9 @@ async function fetchWebsiteWithFirecrawl(
     },
   });
 
-  return normalizeFirecrawlDocuments(source, crawl, options);
+  const items = normalizeFirecrawlDocuments(source, crawl, options);
+  options.onProgress?.(`crawled ${items.length} page${items.length === 1 ? '' : 's'}`);
+  return items;
 }
 
 async function fetchWebsiteWithCheerio(source: Source, options: FetchWebsiteOptions): Promise<ContentItem[]> {
@@ -65,8 +70,11 @@ async function fetchWebsiteWithCheerio(source: Source, options: FetchWebsiteOpti
   const items: ContentItem[] = [];
   const sinceDate = options.since ? new Date(options.since) : null;
   const fetchedAt = options.now ?? new Date().toISOString();
+  const hasLimit = options.limit > 0;
 
-  while (queue.length > 0 && items.length < options.limit) {
+  options.onProgress?.('starting crawl');
+
+  while (queue.length > 0 && (!hasLimit || items.length < options.limit)) {
     const current = queue.shift()!;
     if (visited.has(current.url)) {
       continue;
@@ -106,9 +114,13 @@ async function fetchWebsiteWithCheerio(source: Source, options: FetchWebsiteOpti
         queue.push({ url: link, depth: current.depth + 1 });
       }
     }
+
+    options.onProgress?.(
+      `crawled ${visited.size} page${visited.size === 1 ? '' : 's'}, ${items.length} item${items.length === 1 ? '' : 's'}, ${queue.length} queued`,
+    );
   }
 
-  return items.slice(0, options.limit);
+  return hasLimit ? items.slice(0, options.limit) : items;
 }
 
 function normalizeFirecrawlDocuments(
@@ -154,7 +166,7 @@ function normalizeFirecrawlDocuments(
 
       return new Date(item.published_at) > sinceDate;
     })
-    .slice(0, options.limit);
+    .slice(0, options.limit > 0 ? options.limit : undefined);
 }
 
 function getFirecrawlBodyText(document: CrawlJob['data'][number]): string {

@@ -25,7 +25,7 @@ export const configSchema = z.object({
     weak: z.number().int().min(0),
     adequate: z.number().int().min(0),
   }),
-  fetch_limit: z.number().int().min(1),
+  fetch_limit: z.number().int().min(0),
   fetch_depth: z.number().int().min(0),
   providers: z.record(z.string().min(1), providerOverrideSchema).optional(),
 });

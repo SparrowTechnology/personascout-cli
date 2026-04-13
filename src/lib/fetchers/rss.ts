@@ -8,6 +8,7 @@ export interface FetchRssOptions {
   since?: string;
   parser?: Parser;
   now?: string;
+  onProgress?: (message: string) => void;
 }
 
 export async function fetchRssSource(source: Source, options: FetchRssOptions): Promise<ContentItem[]> {
@@ -20,8 +21,11 @@ export async function fetchRssSource(source: Source, options: FetchRssOptions): 
   }
 
   const parser = options.parser ?? new Parser();
+  options.onProgress?.('requesting feed');
   const feed = await parser.parseURL(source.url);
-  const items = (feed.items ?? []).slice(0, options.limit);
+  const allItems = feed.items ?? [];
+  const items = options.limit > 0 ? allItems.slice(0, options.limit) : allItems;
+  options.onProgress?.(`parsed ${allItems.length} feed item${allItems.length === 1 ? '' : 's'}`);
   const sinceDate = options.since ? new Date(options.since) : null;
   const fetchedAt = options.now ?? new Date().toISOString();
 

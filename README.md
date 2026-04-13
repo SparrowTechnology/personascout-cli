@@ -301,6 +301,8 @@ Supported source definitions today:
 
 Fetches content from configured sources and stores normalized content items in `.personascout/content/{source-id}/`.
 
+By default, new projects fetch without an item cap. You can still set a limit explicitly with `personascout fetch --limit 25`, or use `--limit 0` for unlimited fetches.
+
 Currently implemented:
 
 - RSS feeds via `rss-parser`
