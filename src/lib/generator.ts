@@ -129,6 +129,17 @@ export async function runGeneration(
 ): Promise<{ artifacts: GeneratedArtifact[] }> {
   const cwd = options.cwd ?? process.cwd();
   const plan = await buildGenerationPlan({ ...options, cwd });
+  return runGenerationPlan(plan, { cwd }, dependencies);
+}
+
+export async function runGenerationPlan(
+  plan: GenerationPlan,
+  options: { cwd?: string } = {},
+  dependencies: {
+    generateArtifact?: (provider: ProviderDefinition, model: string, input: { systemPrompt: string; userPrompt: string; format: GenerationFormat }) => Promise<GeneratedBrief | string>;
+  } = {},
+): Promise<{ artifacts: GeneratedArtifact[] }> {
+  const cwd = options.cwd ?? process.cwd();
   const provider = await resolveReadyProvider(plan.provider.id, cwd);
   const generateArtifact = dependencies.generateArtifact ?? generateWithProvider;
   const artifacts: GeneratedArtifact[] = [];

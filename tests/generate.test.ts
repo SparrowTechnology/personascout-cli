@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createDefaultConfig, initializeProject } from '../src/lib/config.js';
-import { buildGenerationPlan, renderGeneratedArtifact, runGeneration } from '../src/lib/generator.js';
+import { buildGenerationPlan, renderGeneratedArtifact, runGeneration, runGenerationPlan } from '../src/lib/generator.js';
 import { writePersona } from '../src/lib/persona.js';
 import { writeRunResult } from '../src/lib/results.js';
 import { writeSource } from '../src/lib/source.js';
@@ -120,6 +120,39 @@ describe('runGeneration', () => {
     expect(output).toContain('Content Brief: CFO');
     expect(output).toContain('HEADLINE');
     expect(output).toContain('KEY POINTS');
+  });
+
+  it('can execute a prebuilt generation plan without rebuilding prompts', async () => {
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    const cwd = await createGenerateFixture();
+
+    const plan = await buildGenerationPlan({
+      cwd,
+      personaId: 'cfo',
+      stage: 'awareness',
+      channel: 'blog',
+      format: 'brief',
+    });
+
+    const { artifacts } = await runGenerationPlan(
+      plan,
+      { cwd },
+      {
+        generateArtifact: async () => ({
+          headline: 'Finance teams need earlier risk visibility',
+          angle: 'Translate delivery uncertainty into board-level planning terms.',
+          key_points: ['See risk earlier', 'Frame the financial impact', 'Choose next steps'],
+          format: 'Blog post',
+          suggested_length: '1200 words',
+          hook: 'Finance teams hear about delivery risk too late.',
+          cta: 'Review your coverage.',
+        }),
+      },
+    );
+
+    expect(artifacts).toHaveLength(1);
+    expect(artifacts[0]?.target.persona_id).toBe('cfo');
+    expect(artifacts[0]?.format).toBe('brief');
   });
 });
 
