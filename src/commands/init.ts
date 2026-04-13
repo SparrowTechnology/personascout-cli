@@ -80,11 +80,32 @@ export function registerInitCommand(program: Command): void {
 
       console.log(chalk.green('✓ PersonaScout initialised'));
       console.log('');
-      console.log('Next steps:');
-      console.log('  personascout persona templates  — browse built-in persona templates');
-      console.log('  personascout persona generate   — create your first ICP with AI');
-      console.log('  personascout persona use cfo    — start from a template');
-      console.log('  personascout source add         — add a content source');
+      console.log('Setup flow:');
+      console.log('  1. Define your personas');
+      console.log('     personascout persona templates');
+      console.log('     personascout persona use cfo');
+      console.log('     personascout persona generate');
+      console.log('     personascout persona add --interactive');
+      console.log('');
+      console.log('  2. Add your content sources');
+      console.log('     personascout source add');
+      console.log('     personascout source test');
+      console.log('');
+      console.log('  3. Fetch content and measure coverage');
+      console.log('     personascout fetch');
+      console.log('     personascout classify --dry-run');
+      console.log('     personascout classify');
+      console.log('     personascout report');
+      console.log('');
+      console.log('  4. Find and close the gaps');
+      console.log('     personascout generate --all --format brief');
+      console.log('     personascout diff');
+      console.log('');
+      console.log('Regular refresh flow:');
+      console.log('  personascout fetch');
+      console.log('  personascout classify');
+      console.log('  personascout report');
+      console.log('  personascout diff');
     });
 }
 

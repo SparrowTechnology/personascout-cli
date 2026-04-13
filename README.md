@@ -19,6 +19,73 @@ You can have dozens of blog posts, landing pages, or newsletter issues and still
 
 PersonaScout answers a direct question: **which ICPs is your content actually reaching, and which target personas are being ignored across the buyer funnel?**
 
+## Setup Flow
+
+The first-time setup flow is:
+
+1. Initialise a local project with `personascout init`
+2. Define the personas you care about
+3. Define the content sources you want to analyse
+4. Fetch content into the local project
+5. Classify that content against your personas
+6. Report on coverage gaps and generate new content ideas
+
+The CLI commands for that first pass are:
+
+```bash
+personascout init
+
+# define personas
+personascout persona templates
+personascout persona use cfo
+personascout persona generate
+personascout persona add --interactive
+
+# define sources
+personascout source add
+personascout source test
+
+# ingest and analyse content
+personascout fetch
+personascout classify --dry-run
+personascout classify
+personascout report
+personascout generate --all --format brief
+personascout diff
+```
+
+In practice, most teams will define personas in one of three ways:
+
+- start from a built-in template with `personascout persona use <template-id>`
+- generate a persona from a short description with `personascout persona generate`
+- create one manually with `personascout persona add --interactive`
+
+Most teams will define sources as a mix of:
+
+- company website pages
+- RSS feeds
+- CSV exports from blogs, newsletters, CMSs, or social/content tools
+
+## Ongoing Workflow
+
+Once the project is set up, the regular workflow is simpler. On a monthly or quarterly cadence, you usually:
+
+1. Refresh the content you want to measure
+2. Re-run classification
+3. Review the latest coverage report
+4. Compare against the previous run
+5. Use the new gaps to plan or generate the next round of content
+
+Typical recurring commands:
+
+```bash
+personascout fetch
+personascout classify
+personascout report
+personascout diff
+personascout generate --all --format brief
+```
+
 ## Why This Exists
 
 Most content audits break down at the moment a team asks a simple question:
