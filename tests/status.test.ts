@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createDefaultConfig, initializeProject } from '../src/lib/config.js';
+import { writeGenerationRunRecord } from '../src/lib/generation-history.js';
 import { normalizeContentItem, writeContentItem } from '../src/lib/content.js';
 import { getPersonaTemplate } from '../src/lib/persona-templates.js';
 import { writePersona } from '../src/lib/persona.js';
@@ -185,6 +186,45 @@ describe('project status', () => {
 
     expect(status.classification_state).toBe('current');
     expect(status.next_step.command).toBe('personascout report');
+  });
+
+  it('includes the latest generation summary when artifacts have been created', async () => {
+    const cwd = await createProject();
+
+    await writeGenerationRunRecord(
+      {
+        run_id: 'generation-2026-04-13T11-00-00-000Z',
+        created_at: '2026-04-13T11:00:00.000Z',
+        provider: 'anthropic',
+        model: 'claude-haiku-4-5',
+        artifact_count: 2,
+        output_dir: path.join(cwd, 'generated'),
+        artifacts: [
+          {
+            persona_id: 'cfo',
+            persona_name: 'CFO',
+            funnel_stage: 'awareness',
+            channel: 'blog',
+            format: 'brief',
+            output_path: path.join(cwd, 'generated', 'cfo-awareness-blog.json'),
+          },
+          {
+            persona_id: 'cto',
+            persona_name: 'CTO',
+            funnel_stage: 'consideration',
+            channel: 'linkedin-article',
+            format: 'draft',
+            output_path: path.join(cwd, 'generated', 'cto-consideration-linkedin-article.md'),
+          },
+        ],
+      },
+      cwd,
+    );
+
+    const status = await buildProjectStatus(cwd);
+
+    expect(status.latest_generation?.artifact_count).toBe(2);
+    expect(status.latest_generation?.output_dir).toBe(path.join(cwd, 'generated'));
   });
 });
 

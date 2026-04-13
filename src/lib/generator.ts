@@ -4,6 +4,7 @@ import { select } from '@inquirer/prompts';
 import { z } from 'zod';
 import { buildCoverageReport, type CoverageGap } from './reporter.js';
 import { readConfig } from './config.js';
+import { createGenerationRunId, writeGenerationRunRecord } from './generation-history.js';
 import { completeWithProvider } from './llm.js';
 import { listSources } from './source.js';
 import { listPersonas } from './persona.js';
@@ -179,6 +180,26 @@ export async function runGenerationPlan(
 
     artifacts.push(artifact);
   }
+
+  await writeGenerationRunRecord(
+    {
+      run_id: createGenerationRunId(),
+      created_at: new Date().toISOString(),
+      provider: provider.id,
+      model: plan.model,
+      artifact_count: artifacts.length,
+      output_dir: plan.outputDir,
+      artifacts: artifacts.map((artifact) => ({
+        persona_id: artifact.target.persona_id,
+        persona_name: artifact.target.persona_name,
+        funnel_stage: artifact.target.funnel_stage,
+        channel: artifact.channel,
+        format: artifact.format,
+        output_path: artifact.output_path,
+      })),
+    },
+    cwd,
+  );
 
   return { artifacts };
 }

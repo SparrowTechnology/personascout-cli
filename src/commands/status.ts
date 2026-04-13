@@ -26,6 +26,8 @@ export function registerStatusCommand(program: Command): void {
 
       renderLatestRun(status);
       console.log('');
+      renderLatestGeneration(status);
+      console.log('');
       renderNextStep(status);
     });
 }
@@ -73,6 +75,31 @@ function renderLatestRun(status: Awaited<ReturnType<typeof buildProjectStatus>>)
   console.log(`Provider:    ${status.latest_result.provider}/${status.latest_result.model}`);
   console.log(`Items:       ${status.latest_result.item_count}`);
   console.log(`Freshness:   ${renderClassificationLabel(status)}`);
+}
+
+function renderLatestGeneration(status: Awaited<ReturnType<typeof buildProjectStatus>>): void {
+  console.log('Latest Generation');
+
+  if (!status.latest_generation) {
+    console.log('No generated artifacts recorded yet.');
+    return;
+  }
+
+  const latest = status.latest_generation;
+  const formats = [...new Set(latest.artifacts.map((artifact) => artifact.format))].join(', ');
+  const channels = [...new Set(latest.artifacts.map((artifact) => artifact.channel))].join(', ');
+
+  console.log(`Run ID:      ${latest.run_id}`);
+  console.log(`Created:     ${formatTimestamp(latest.created_at)}`);
+  console.log(`Artifacts:   ${latest.artifact_count}`);
+  console.log(`Formats:     ${formats}`);
+  console.log(`Channels:    ${channels}`);
+
+  if (latest.output_dir) {
+    console.log(`Saved to:    ${latest.output_dir}`);
+  } else {
+    console.log('Saved to:    terminal only');
+  }
 }
 
 function renderNextStep(status: Awaited<ReturnType<typeof buildProjectStatus>>): void {

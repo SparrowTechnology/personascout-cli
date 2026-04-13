@@ -27,3 +27,22 @@ export interface GeneratedArtifact {
   content: GeneratedBrief | string;
   output_path?: string;
 }
+
+export interface GenerationRunArtifactSummary {
+  persona_id: string;
+  persona_name: string;
+  funnel_stage: GenerationTarget['funnel_stage'];
+  channel: ContentChannel;
+  format: GenerationFormat;
+  output_path?: string;
+}
+
+export interface GenerationRunRecord {
+  run_id: string;
+  created_at: string;
+  provider: string;
+  model: string;
+  artifact_count: number;
+  output_dir?: string;
+  artifacts: GenerationRunArtifactSummary[];
+}

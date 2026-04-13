@@ -1,8 +1,9 @@
 import { readConfig } from './config.js';
+import { getLatestGenerationRunRecord } from './generation-history.js';
 import { listPersonas } from './persona.js';
 import { loadContentItems, getLatestRunResult, listRunResultFiles } from './results.js';
 import { listSources } from './source.js';
-import type { RunResult, Source } from '../types/index.js';
+import type { GenerationRunRecord, RunResult, Source } from '../types/index.js';
 
 export type ClassificationState = 'missing' | 'stale' | 'current';
 
@@ -24,18 +25,20 @@ export interface ProjectStatus {
   result_count: number;
   latest_fetch_at: string | null;
   latest_result: RunResult | null;
+  latest_generation: GenerationRunRecord | null;
   classification_state: ClassificationState;
   sources: Source[];
   next_step: SuggestedNextStep;
 }
 
 export async function buildProjectStatus(cwd = process.cwd()): Promise<ProjectStatus> {
-  const [config, personas, sources, items, latestResult, resultFiles] = await Promise.all([
+  const [config, personas, sources, items, latestResult, latestGeneration, resultFiles] = await Promise.all([
     readConfig(cwd),
     listPersonas(cwd),
     listSources(cwd),
     loadContentItems(cwd),
     getLatestRunResult(cwd),
+    getLatestGenerationRunRecord(cwd),
     listRunResultFiles(cwd),
   ]);
 
@@ -55,6 +58,7 @@ export async function buildProjectStatus(cwd = process.cwd()): Promise<ProjectSt
     result_count: resultFiles.length,
     latest_fetch_at: latestFetchAt,
     latest_result: latestResult,
+    latest_generation: latestGeneration,
     classification_state: classificationState,
     sources,
     next_step: {

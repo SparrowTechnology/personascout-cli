@@ -275,6 +275,7 @@ Shows the current project state at a glance:
 - how many content items are stored
 - whether classification has been run yet
 - whether the latest classification is stale
+- the latest generation run, including whether output was terminal-only or written to a directory
 - the suggested next command to run
 
 ### `personascout persona`

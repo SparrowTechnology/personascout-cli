@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createDefaultConfig, initializeProject } from '../src/lib/config.js';
+import { getLatestGenerationRunRecord } from '../src/lib/generation-history.js';
 import { buildGenerationPlan, renderGeneratedArtifact, runGeneration, runGenerationPlan } from '../src/lib/generator.js';
 import { writePersona } from '../src/lib/persona.js';
 import { writeRunResult } from '../src/lib/results.js';
@@ -93,6 +94,10 @@ describe('runGeneration', () => {
 
     const saved = await readFile(artifacts[0].output_path!, 'utf8');
     expect(saved).toContain('"headline": "Closing the visibility gap"');
+
+    const latestRun = await getLatestGenerationRunRecord(cwd);
+    expect(latestRun?.artifact_count).toBe(6);
+    expect(latestRun?.output_dir).toBe(outputDir);
   });
 
   it('renders briefs in a readable terminal format', () => {
@@ -153,6 +158,10 @@ describe('runGeneration', () => {
     expect(artifacts).toHaveLength(1);
     expect(artifacts[0]?.target.persona_id).toBe('cfo');
     expect(artifacts[0]?.format).toBe('brief');
+
+    const latestRun = await getLatestGenerationRunRecord(cwd);
+    expect(latestRun?.artifact_count).toBe(1);
+    expect(latestRun?.output_dir).toBeUndefined();
   });
 });
 
