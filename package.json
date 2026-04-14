@@ -1,6 +1,6 @@
 {
   "name": "personascout",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Map your content against your ICPs. Find the gaps. Fill them.",
   "type": "module",
   "bin": {
