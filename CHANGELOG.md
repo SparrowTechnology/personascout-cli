@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.0 - 2026-04-14
+
+Adds the first machine-readable CLI output layer so PersonaScout can be integrated more cleanly into other systems and hosted wrappers.
+
+### Added
+
+- `personascout status --format json`
+- `personascout classify --format json`
+- `personascout generate --result-format json`
+
+### Changed
+
+- `classify` now emits structured JSON for both dry-run and live-run summaries when requested
+- `generate` now emits structured JSON including artifact output and generation run metadata when requested
+- `status` can now return the full project status payload as JSON
+- README now documents the machine-readable command surface for integrators
+
 ## 0.1.0 - 2026-04-12
 
 First public release. This completes the initial CLI scope and is the baseline for public npm distribution.
