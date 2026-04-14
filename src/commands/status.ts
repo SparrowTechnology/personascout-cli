@@ -8,8 +8,15 @@ export function registerStatusCommand(program: Command): void {
   program
     .command('status')
     .description('Show project progress and the suggested next step')
-    .action(async () => {
+    .option('--format <format>', 'output format: terminal or json', parseFormat, 'terminal')
+    .addHelpText('after', '\nUse --format json for machine-readable project status output.\n')
+    .action(async (options: { format: StatusFormat }) => {
       const status = await buildProjectStatus();
+      if (options.format === 'json') {
+        process.stdout.write(`${JSON.stringify(status, null, 2)}\n`);
+        return;
+      }
+
       const ui = createTerminalUi();
 
       console.log(ui.section('PersonaScout Status'));
@@ -31,6 +38,16 @@ export function registerStatusCommand(program: Command): void {
       console.log('');
       renderNextStep(status, ui);
     });
+}
+
+type StatusFormat = 'terminal' | 'json';
+
+function parseFormat(value: string): StatusFormat {
+  if (value === 'terminal' || value === 'json') {
+    return value;
+  }
+
+  throw new Error('Format must be one of: terminal, json.');
 }
 
 function renderProgress(status: Awaited<ReturnType<typeof buildProjectStatus>>, ui: ReturnType<typeof createTerminalUi>): void {

@@ -10,6 +10,7 @@ export function registerClassifyCommand(program: Command): void {
   program
     .command('classify')
     .description('Classify fetched content against your personas with an AI provider')
+    .option('--format <format>', 'output format: terminal or json', parseFormat, 'terminal')
     .option('--provider <id>', 'override the configured provider')
     .option('--model <name>', 'override the model used for classification')
     .option('--dry-run', 'estimate tokens and cost without calling a model')
@@ -17,8 +18,10 @@ export function registerClassifyCommand(program: Command): void {
     .option('--source <id>', 'only classify content from a single source')
     .option('--since <date>', 'only classify items published after this ISO date', parseIsoDate)
     .addHelpText('after', `\n${formatAiBadge()} This command uses your configured AI provider unless you pass --dry-run. Live classification may incur token costs.\n`)
+    .addHelpText('after', '\nUse --format json for machine-readable dry-run or live-run summaries.\n')
     .action(
       async (options: {
+        format: ClassifyFormat;
         provider?: string;
         model?: string;
         dryRun?: boolean;
@@ -44,6 +47,11 @@ export function registerClassifyCommand(program: Command): void {
         }
 
         if (options.dryRun) {
+          if (options.format === 'json') {
+            process.stdout.write(`${JSON.stringify(buildDryRunPayload(plan), null, 2)}\n`);
+            return;
+          }
+
           renderDryRun(plan);
           return;
         }
@@ -54,14 +62,20 @@ export function registerClassifyCommand(program: Command): void {
           return;
         }
 
-        console.log(`${formatAiBadge()} Using ${plan.provider.id}/${plan.model}. This may incur provider usage costs.`);
+        if (options.format === 'terminal') {
+          console.log(`${formatAiBadge()} Using ${plan.provider.id}/${plan.model}. This may incur provider usage costs.`);
+        }
         const startedAt = Date.now();
-        const spinner = ora('').start();
+        const spinner = options.format === 'terminal' ? ora('').start() : null;
         let completed = 0;
         const renderSpinnerText = () => {
+          if (!spinner) {
+            return;
+          }
+
           spinner.text = `Classifying ${ui.progressBar(completed, plan.items_to_classify.length, { color: 'green' })} ${completed}/${plan.items_to_classify.length} (${formatElapsed(Date.now() - startedAt)})`;
         };
-        const statusInterval = setInterval(renderSpinnerText, 1000);
+        const statusInterval = spinner ? setInterval(renderSpinnerText, 1000) : null;
         renderSpinnerText();
 
         try {
@@ -83,16 +97,34 @@ export function registerClassifyCommand(program: Command): void {
             },
           );
 
-          clearInterval(statusInterval);
-          spinner.succeed(`Classified ${result.item_count} items in ${formatElapsed(Date.now() - startedAt)}.`);
+          if (statusInterval) {
+            clearInterval(statusInterval);
+          }
+
+          if (spinner) {
+            spinner.succeed(`Classified ${result.item_count} items in ${formatElapsed(Date.now() - startedAt)}.`);
+          }
+
+          if (options.format === 'json') {
+            process.stdout.write(
+              `${JSON.stringify(buildLiveRunPayload(result, outputPath, skipped, formatElapsed(Date.now() - startedAt))), null, 2}\n`,
+            );
+            return;
+          }
+
           if (skipped > 0) {
             console.log(chalk.yellow(`Skipped ${skipped} items after repeated JSON parse failures.`));
           }
           console.log(`${ui.success('Saved result:')} ${outputPath}`);
           console.log(`${ui.accent('Next:')} personascout report`);
         } catch (error) {
-          clearInterval(statusInterval);
-          spinner.fail(`Classification failed after ${formatElapsed(Date.now() - startedAt)}.`);
+          if (statusInterval) {
+            clearInterval(statusInterval);
+          }
+
+          if (spinner) {
+            spinner.fail(`Classification failed after ${formatElapsed(Date.now() - startedAt)}.`);
+          }
           throw error;
         }
       },
@@ -143,4 +175,49 @@ function formatElapsed(durationMs: number): string {
   }
 
   return `${seconds}s`;
+}
+
+type ClassifyFormat = 'terminal' | 'json';
+
+function parseFormat(value: string): ClassifyFormat {
+  if (value === 'terminal' || value === 'json') {
+    return value;
+  }
+
+  throw new Error('Format must be one of: terminal, json.');
+}
+
+function buildDryRunPayload(plan: Awaited<ReturnType<typeof buildClassificationPlan>>) {
+  return {
+    mode: 'dry-run' as const,
+    provider: plan.provider.id,
+    model: plan.model,
+    persona_count: plan.personas.length,
+    content_items_matched: plan.items.length,
+    items_to_classify: plan.items_to_classify.length,
+    latest_run_skip_set: plan.latest_result_item_count,
+    usage: {
+      estimated_input_tokens: plan.usage.estimated_input_tokens,
+      estimated_output_tokens: plan.usage.estimated_output_tokens,
+      estimated_total_tokens: plan.usage.estimated_total_tokens,
+      estimated_cost_usd: plan.usage.estimated_cost_usd,
+    },
+  };
+}
+
+function buildLiveRunPayload(
+  result: Awaited<ReturnType<typeof runClassification>>['result'],
+  outputPath: string,
+  skipped: number,
+  elapsed: string,
+) {
+  return {
+    mode: 'live' as const,
+    provider: result.provider,
+    model: result.model,
+    elapsed,
+    skipped,
+    output_path: outputPath,
+    result,
+  };
 }

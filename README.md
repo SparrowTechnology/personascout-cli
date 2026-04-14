@@ -296,6 +296,8 @@ Shows the current project state at a glance:
 - the latest generation run, including whether output was terminal-only or written to a directory
 - the suggested next command to run
 
+For integration use, `personascout status --format json` prints the same project-state payload as structured JSON.
+
 ### `personascout persona`
 
 Current subcommands:
@@ -356,6 +358,7 @@ Current flags:
 - `personascout classify --model claude-sonnet-4-5`
 - `personascout classify --source acme-blog`
 - `personascout classify --since 2026-04-01`
+- `personascout classify --format json`
 
 Behavior today:
 
@@ -363,6 +366,7 @@ Behavior today:
 - skips items already present in the latest result file unless `--force`
 - supports Anthropic and OpenAI-compatible providers through the provider registry
 - gives rough token and cost estimates in dry-run mode
+- can emit machine-readable JSON for both dry-run and live run summaries
 
 ### `personascout report`
 
@@ -394,6 +398,7 @@ Current flags:
 - `personascout generate --persona cfo --stage consideration`
 - `personascout generate --channel linkedin-article --format brief`
 - `personascout generate --output ./generated`
+- `personascout generate --result-format json`
 
 Behavior today:
 
@@ -402,6 +407,7 @@ Behavior today:
 - can generate either structured briefs or full markdown drafts
 - uses existing classified content as tone/context examples
 - can print to the terminal or write files to a directory
+- can emit machine-readable JSON including generated artifacts and generation run metadata
 
 ### `personascout diff`
 

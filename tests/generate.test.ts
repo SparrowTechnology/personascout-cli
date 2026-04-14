@@ -68,7 +68,7 @@ describe('runGeneration', () => {
     const cwd = await createGenerateFixture();
     const outputDir = path.join(cwd, 'generated');
 
-    const { artifacts } = await runGeneration(
+    const { artifacts, record, outputPath: recordPath } = await runGeneration(
       {
         cwd,
         all: true,
@@ -98,6 +98,9 @@ describe('runGeneration', () => {
     const latestRun = await getLatestGenerationRunRecord(cwd);
     expect(latestRun?.artifact_count).toBe(6);
     expect(latestRun?.output_dir).toBe(outputDir);
+    expect(record.artifact_count).toBe(6);
+    expect(record.output_dir).toBe(outputDir);
+    expect(recordPath).toContain(path.join('.personascout', 'results', 'generations'));
   });
 
   it('renders briefs in a readable terminal format', () => {
@@ -139,7 +142,7 @@ describe('runGeneration', () => {
       format: 'brief',
     });
 
-    const { artifacts } = await runGenerationPlan(
+    const { artifacts, record, outputPath: recordPath } = await runGenerationPlan(
       plan,
       { cwd },
       {
@@ -162,6 +165,9 @@ describe('runGeneration', () => {
     const latestRun = await getLatestGenerationRunRecord(cwd);
     expect(latestRun?.artifact_count).toBe(1);
     expect(latestRun?.output_dir).toBeUndefined();
+    expect(record.artifact_count).toBe(1);
+    expect(record.output_dir).toBeUndefined();
+    expect(recordPath).toContain(path.join('.personascout', 'results', 'generations'));
   });
 });
 

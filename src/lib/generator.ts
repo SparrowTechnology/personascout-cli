@@ -16,6 +16,7 @@ import type {
   GeneratedArtifact,
   GeneratedBrief,
   GenerationFormat,
+  GenerationRunRecord,
   GenerationTarget,
   Persona,
   ProviderDefinition,
@@ -128,7 +129,7 @@ export async function runGeneration(
   dependencies: {
     generateArtifact?: (provider: ProviderDefinition, model: string, input: { systemPrompt: string; userPrompt: string; format: GenerationFormat }) => Promise<GeneratedBrief | string>;
   } = {},
-): Promise<{ artifacts: GeneratedArtifact[] }> {
+): Promise<{ artifacts: GeneratedArtifact[]; record: GenerationRunRecord; outputPath: string }> {
   const cwd = options.cwd ?? process.cwd();
   const plan = await buildGenerationPlan({ ...options, cwd });
   return runGenerationPlan(plan, { cwd }, dependencies);
@@ -140,7 +141,7 @@ export async function runGenerationPlan(
   dependencies: {
     generateArtifact?: (provider: ProviderDefinition, model: string, input: { systemPrompt: string; userPrompt: string; format: GenerationFormat }) => Promise<GeneratedBrief | string>;
   } = {},
-): Promise<{ artifacts: GeneratedArtifact[] }> {
+): Promise<{ artifacts: GeneratedArtifact[]; record: GenerationRunRecord; outputPath: string }> {
   const cwd = options.cwd ?? process.cwd();
   const provider = await resolveReadyProvider(plan.provider.id, cwd);
   const generateArtifact = dependencies.generateArtifact ?? generateWithProvider;
@@ -182,27 +183,26 @@ export async function runGenerationPlan(
     artifacts.push(artifact);
   }
 
-  await writeGenerationRunRecord(
-    {
-      run_id: createGenerationRunId(),
-      created_at: new Date().toISOString(),
-      provider: provider.id,
-      model: plan.model,
-      artifact_count: artifacts.length,
-      output_dir: plan.outputDir,
-      artifacts: artifacts.map((artifact) => ({
-        persona_id: artifact.target.persona_id,
-        persona_name: artifact.target.persona_name,
-        funnel_stage: artifact.target.funnel_stage,
-        channel: artifact.channel,
-        format: artifact.format,
-        output_path: artifact.output_path,
-      })),
-    },
-    cwd,
-  );
+  const record: GenerationRunRecord = {
+    run_id: createGenerationRunId(),
+    created_at: new Date().toISOString(),
+    provider: provider.id,
+    model: plan.model,
+    artifact_count: artifacts.length,
+    output_dir: plan.outputDir,
+    artifacts: artifacts.map((artifact) => ({
+      persona_id: artifact.target.persona_id,
+      persona_name: artifact.target.persona_name,
+      funnel_stage: artifact.target.funnel_stage,
+      channel: artifact.channel,
+      format: artifact.format,
+      output_path: artifact.output_path,
+    })),
+  };
 
-  return { artifacts };
+  const outputPath = await writeGenerationRunRecord(record, cwd);
+
+  return { artifacts, record, outputPath };
 }
 
 export function renderGeneratedArtifact(artifact: GeneratedArtifact): string {
